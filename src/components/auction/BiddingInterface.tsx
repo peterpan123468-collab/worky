@@ -4,6 +4,7 @@ import { Button } from '../../components/ui/button'
 import { useAuth } from '../../contexts/AuthContext'
 import { useBidding } from '../../hooks/useBidding'
 import { nextValidBid, formatCHF } from '../../utils/currency'
+import { useToast } from '../../contexts/ToastContext'
 
 interface Props {
   auctionId: string
@@ -14,10 +15,16 @@ export function BiddingInterface({ auctionId, currentHighest }: Props) {
   const { user } = useAuth()
   const { highestBid, placeBid, placing, error } = useBidding(auctionId)
   const [amount, setAmount] = useState<number>(nextValidBid(currentHighest))
+  const { show } = useToast()
 
   const submit = async () => {
     if (!user) return
-    await placeBid(user.id, amount)
+    const res = await placeBid(user.id, amount)
+    if (res.success) {
+      show('Bid placed successfully', { type: 'success' })
+    } else if (res.error) {
+      show(res.error, { type: 'error', duration: 4000 })
+    }
   }
 
   return (
@@ -45,4 +52,3 @@ const styles = StyleSheet.create({
   meta: { marginLeft: 12, color: '#666' },
   error: { marginLeft: 12, color: '#ef4444' },
 })
-

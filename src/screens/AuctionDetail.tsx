@@ -11,6 +11,8 @@ import { AuctionTimer } from '../components/auction/AuctionTimer'
 import { BiddingInterface } from '../components/auction/BiddingInterface'
 import { formatCHF } from '../utils/currency'
 import { supabase } from '../lib/supabase'
+import { useBidding } from '../hooks/useBidding'
+import { formatSwissDateTime } from '../utils/timezone'
 
 type Route = RouteProp<RootStackParamList, 'AuctionDetail'>
 
@@ -67,6 +69,7 @@ export function AuctionDetail() {
   }
 
   const current = auction.current_highest_bid ?? auction.starting_price
+  const { bids } = useBidding(auction.id)
 
   return (
     <Background style={styles.background}>
@@ -81,6 +84,20 @@ export function AuctionDetail() {
         <View style={[styles.section, theme === 'glass' && glassCard]}>
           <Text style={styles.sectionTitle}>Place a Bid</Text>
           <BiddingInterface auctionId={auction.id} currentHighest={current} />
+        </View>
+
+        <View style={[styles.section, theme === 'glass' && glassCard]}>
+          <Text style={styles.sectionTitle}>Recent Bids</Text>
+          {bids.length === 0 ? (
+            <Text style={{ color: 'rgba(255,255,255,0.7)' }}>No bids yet. Be the first!</Text>
+          ) : (
+            bids.map((b) => (
+              <View key={b.id} style={styles.bidRow}>
+                <Text style={styles.bidAmount}>{formatCHF(b.bid_amount)}</Text>
+                <Text style={styles.bidMeta}>{formatSwissDateTime(b.created_at)}</Text>
+              </View>
+            ))
+          )}
         </View>
       </ScrollView>
     </Background>
@@ -99,4 +116,7 @@ const styles = StyleSheet.create({
   value: { color: '#fff', fontWeight: '600' },
   section: { margin: 16, padding: 16, borderRadius: 12, backgroundColor: 'rgba(0,0,0,0.35)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.12)' },
   sectionTitle: { color: '#fff', fontSize: 16, fontWeight: '600', marginBottom: 8 },
+  bidRow: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.08)' },
+  bidAmount: { color: '#fff', fontWeight: '600' },
+  bidMeta: { color: 'rgba(255,255,255,0.7)' },
 })
