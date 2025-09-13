@@ -7,6 +7,8 @@ import { Background } from '../components/Background'
 import { glassCard } from '../components/themeStyles'
 import { useTheme } from '../contexts/ThemeContext'
 import { AuctionList } from '../components/auction/AuctionList'
+import { useHandymanDashboard } from '../hooks/useHandymanDashboard'
+import { formatCHF } from '../utils/currency'
 import { useNavigation } from '@react-navigation/native'
 import { StackNavigationProp } from '@react-navigation/stack'
 import { RootStackParamList } from '../navigation/AppNavigator'
@@ -16,6 +18,7 @@ export function HandymanDashboard() {
   const { logout, user } = useAuth()
   const { theme } = useTheme()
   const navigation = useNavigation<Nav>()
+  const { stats, recentBids } = useHandymanDashboard(user?.id)
   return (
     <Background style={styles.background}>
       <ScrollView style={styles.scrollView}>
@@ -34,11 +37,11 @@ export function HandymanDashboard() {
           {/* Stats Cards */}
           <View style={styles.statsContainer}>
             <View style={styles.statCard}>
-              <Text style={styles.statNumber}>12</Text>
+              <Text style={styles.statNumber}>{stats.activeBookings}</Text>
               <Text style={styles.statLabel}>Active Bookings</Text>
             </View>
             <View style={styles.statCard}>
-              <Text style={styles.statNumber}>$2,450</Text>
+              <Text style={styles.statNumber}>{formatCHF(stats.monthRevenue)}</Text>
               <Text style={styles.statLabel}>This Month</Text>
             </View>
           </View>
@@ -61,25 +64,19 @@ export function HandymanDashboard() {
 
           {/* Recent Activity */}
           <View style={[styles.card, theme === 'glass' && glassCard]}>
-            <Text style={styles.cardTitle}>Recent Activity</Text>
+            <Text style={styles.cardTitle}>Recent Bids</Text>
             <View style={styles.cardContent}>
-              <View style={styles.activityItem}>
-                <View style={styles.activityInfo}>
-                  <Text style={styles.activityTitle}>New booking request</Text>
-                  <Text style={styles.activitySubtitle}>Plumbing repair - Tomorrow 2PM</Text>
+              {recentBids.length === 0 ? (
+                <Text style={{ color: 'rgba(255,255,255,0.7)' }}>No recent bids</Text>
+              ) : recentBids.map((b) => (
+                <View key={b.id} style={styles.activityItem}>
+                  <View style={styles.activityInfo}>
+                    <Text style={styles.activityTitle}>New bid placed</Text>
+                    <Text style={styles.activitySubtitle}>{new Date(b.created_at).toLocaleString()}</Text>
+                  </View>
+                  <Text style={styles.priceText}>{formatCHF(b.bid_amount)}</Text>
                 </View>
-                <TouchableOpacity style={styles.smallButton}>
-                  <Text style={styles.smallButtonText}>Accept</Text>
-                </TouchableOpacity>
-              </View>
-              
-              <View style={styles.activityItem}>
-                <View style={styles.activityInfo}>
-                  <Text style={styles.activityTitle}>Auction bid received</Text>
-                  <Text style={styles.activitySubtitle}>Electrical work - $150 bid</Text>
-                </View>
-                <Text style={styles.priceText}>$150</Text>
-              </View>
+              ))}
             </View>
           </View>
 

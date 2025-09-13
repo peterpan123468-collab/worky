@@ -11,12 +11,17 @@ import { glassCard } from '../components/themeStyles'
 import Ionicons from '@expo/vector-icons/Ionicons'
 import { RootStackParamList } from '../navigation/AppNavigator'
 import { AuctionList } from '../components/auction/AuctionList'
+import { useCustomerDashboard } from '../hooks/useCustomerDashboard'
+import { useAuth } from '../contexts/AuthContext'
+import { formatSwissDateTime } from '../utils/timezone'
+import { formatCHF } from '../utils/currency'
 
 type Nav = StackNavigationProp<RootStackParamList>
 export function CustomerDashboard() {
-  const { logout } = useAuth()
+  const { logout, user } = useAuth()
   const { theme } = useTheme()
   const navigation = useNavigation<Nav>()
+  const { slots, bookings } = useCustomerDashboard(user?.id)
   return (
     <Background style={styles.background}>
       <ScrollView style={styles.scrollView}>
@@ -66,39 +71,28 @@ export function CustomerDashboard() {
           <View style={[styles.card, theme === 'glass' && glassCard]}>
             <Text style={styles.cardTitle}>Available Services</Text>
             <View style={styles.cardContent}>
-              <View style={styles.serviceItem}>
-                <View style={styles.serviceHeader}>
-                  <Text style={styles.serviceName}>Mike's Plumbing</Text>
-                  <Text style={styles.servicePrice}>$75/hr</Text>
-                </View>
-                <Text style={styles.serviceTime}>Available tomorrow 2PM-4PM</Text>
-                <View style={styles.serviceFooter}>
-                  <View style={styles.serviceRatingRow}>
-                    <Ionicons name="star" size={14} color="#f5c518" />
-                    <Text style={styles.serviceRatingText}>4.8 (24 reviews)</Text>
+              {slots.length === 0 ? (
+                <Text style={{ color: 'rgba(255,255,255,0.7)' }}>No open time slots</Text>
+              ) : (
+                slots.map((s) => (
+                  <View key={s.id} style={styles.serviceItem}>
+                    <View style={styles.serviceHeader}>
+                      <Text style={styles.serviceName}>Available Slot</Text>
+                      <Text style={styles.servicePrice}>{formatSwissDateTime(s.start_time)}</Text>
+                    </View>
+                    <Text style={styles.serviceTime}>Ends {formatSwissDateTime(s.end_time)}</Text>
+                    <View style={styles.serviceFooter}>
+                      <View style={styles.serviceRatingRow}>
+                        <Ionicons name="star" size={14} color="#f5c518" />
+                        <Text style={styles.serviceRatingText}>Open</Text>
+                      </View>
+                      <TouchableOpacity style={styles.bookButton}>
+                        <Text style={styles.bookButtonText}>Book</Text>
+                      </TouchableOpacity>
+                    </View>
                   </View>
-                  <TouchableOpacity style={styles.bookButton}>
-                    <Text style={styles.bookButtonText}>Book Now</Text>
-                  </TouchableOpacity>
-                </View>
-              </View>
-              
-              <View style={styles.serviceItem}>
-                <View style={styles.serviceHeader}>
-                  <Text style={styles.serviceName}>Sarah's Electrical</Text>
-                  <Text style={styles.servicePrice}>$90/hr</Text>
-                </View>
-                <Text style={styles.serviceTime}>Available today 6PM-8PM</Text>
-                <View style={styles.serviceFooter}>
-                  <View style={styles.serviceRatingRow}>
-                    <Ionicons name="star" size={14} color="#f5c518" />
-                    <Text style={styles.serviceRatingText}>4.9 (18 reviews)</Text>
-                  </View>
-                  <TouchableOpacity style={styles.bookButton}>
-                    <Text style={styles.bookButtonText}>Book Now</Text>
-                  </TouchableOpacity>
-                </View>
-              </View>
+                ))
+              )}
             </View>
           </View>
 
@@ -119,23 +113,22 @@ export function CustomerDashboard() {
           <View style={[styles.card, theme === 'glass' && glassCard]}>
             <Text style={styles.cardTitle}>My Bookings</Text>
             <View style={styles.cardContent}>
-              <View style={styles.bookingItem}>
-                <View style={styles.bookingHeader}>
-                  <Text style={styles.bookingTitle}>Plumbing Repair</Text>
-                  <Text style={styles.bookingPrice}>$150</Text>
-                </View>
-                <Text style={styles.bookingDetails}>Tomorrow 2PM - Mike's Plumbing</Text>
-                <Text style={styles.confirmedStatus}>Confirmed</Text>
-              </View>
-              
-              <View style={styles.bookingItem}>
-                <View style={styles.bookingHeader}>
-                  <Text style={styles.bookingTitle}>Electrical Work</Text>
-                  <Text style={styles.bookingPrice}>$180</Text>
-                </View>
-                <Text style={styles.bookingDetails}>Friday 10AM - Sarah's Electrical</Text>
-                <Text style={styles.pendingStatus}>Pending</Text>
-              </View>
+              {bookings.length === 0 ? (
+                <Text style={{ color: 'rgba(255,255,255,0.7)' }}>No recent bookings</Text>
+              ) : (
+                bookings.map((b) => (
+                  <View key={b.id} style={styles.bookingItem}>
+                    <View style={styles.bookingHeader}>
+                      <Text style={styles.bookingTitle}>{b.work_description || 'Service Booking'}</Text>
+                      <Text style={styles.bookingPrice}>{formatCHF(b.total_price)}</Text>
+                    </View>
+                    <Text style={styles.bookingDetails}>{formatSwissDateTime(b.created_at)}</Text>
+                    <Text style={b.status === 'confirmed' ? styles.confirmedStatus : styles.pendingStatus}>
+                      {b.status}
+                    </Text>
+                  </View>
+                ))
+              )}
             </View>
           </View>
         </View>
