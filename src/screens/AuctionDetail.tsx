@@ -13,6 +13,7 @@ import { formatCHF } from '../utils/currency'
 import { supabase } from '../lib/supabase'
 import { useBidding } from '../hooks/useBidding'
 import { formatSwissDateTime } from '../utils/timezone'
+import { useAuth } from '../contexts/AuthContext'
 
 type Route = RouteProp<RootStackParamList, 'AuctionDetail'>
 
@@ -22,6 +23,7 @@ export function AuctionDetail() {
   const [auction, setAuction] = useState<Auction | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const { user } = useAuth()
 
   useEffect(() => {
     const load = async () => {
@@ -80,6 +82,17 @@ export function AuctionDetail() {
           <View style={styles.row}><Text style={styles.label}>Current</Text><Text style={styles.value}>{formatCHF(current)}</Text></View>
           <View style={styles.row}><Text style={styles.label}>Time Left</Text><AuctionTimer endsAt={auction.ends_at} /></View>
         </View>
+
+        {auction.status !== 'active' && (
+          <View style={[styles.section, theme === 'glass' && glassCard]}>
+            <Text style={styles.sectionTitle}>Auction Summary</Text>
+            <View style={styles.row}><Text style={styles.label}>Status</Text><Text style={styles.value}>{auction.status}</Text></View>
+            <View style={styles.row}><Text style={styles.label}>Final Price</Text><Text style={styles.value}>{formatCHF(auction.current_highest_bid ?? auction.starting_price)}</Text></View>
+            {auction.winner_id && (
+              <View style={styles.row}><Text style={styles.label}>Result</Text><Text style={styles.value}>{user?.id === auction.winner_id ? 'You won this auction' : 'Winner selected'}</Text></View>
+            )}
+          </View>
+        )}
 
         <View style={[styles.section, theme === 'glass' && glassCard]}>
           <Text style={styles.sectionTitle}>Place a Bid</Text>

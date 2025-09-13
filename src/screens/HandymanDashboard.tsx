@@ -6,13 +6,14 @@ import { useAuth } from '../contexts/AuthContext'
 import { Background } from '../components/Background'
 import { glassCard } from '../components/themeStyles'
 import { useTheme } from '../contexts/ThemeContext'
+import { AuctionList } from '../components/auction/AuctionList'
 import { useNavigation } from '@react-navigation/native'
 import { StackNavigationProp } from '@react-navigation/stack'
 import { RootStackParamList } from '../navigation/AppNavigator'
 
 type Nav = StackNavigationProp<RootStackParamList>
 export function HandymanDashboard() {
-  const { logout } = useAuth()
+  const { logout, user } = useAuth()
   const { theme } = useTheme()
   const navigation = useNavigation<Nav>()
   return (
@@ -84,22 +85,8 @@ export function HandymanDashboard() {
 
           {/* Active Auctions */}
           <View style={[styles.card, theme === 'glass' && glassCard]}>
-            <Text style={styles.cardTitle}>Active Auctions</Text>
-            <View style={styles.cardContent}>
-              <View style={styles.auctionItem}>
-                <View style={styles.auctionHeader}>
-                  <Text style={styles.auctionTitle}>Kitchen Renovation</Text>
-                  <Text style={styles.auctionPrice}>$200</Text>
-                </View>
-                <Text style={styles.auctionSubtitle}>Current highest bid</Text>
-                <View style={styles.auctionFooter}>
-                  <Text style={styles.auctionTime}>Ends in 2h 15m</Text>
-                  <TouchableOpacity style={styles.outlineButton}>
-                    <Text style={styles.outlineButtonText}>View Details</Text>
-                  </TouchableOpacity>
-                </View>
-              </View>
-            </View>
+            <Text style={styles.cardTitle}>Your Active Auctions</Text>
+            <AuctionList filters={{ status: 'active', handymanId: user?.id }} embedded limit={3} emptyText="No active auctions" />
           </View>
         </View>
       </ScrollView>

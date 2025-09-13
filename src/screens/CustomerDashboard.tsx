@@ -10,6 +10,7 @@ import { useTheme } from '../contexts/ThemeContext'
 import { glassCard } from '../components/themeStyles'
 import Ionicons from '@expo/vector-icons/Ionicons'
 import { RootStackParamList } from '../navigation/AppNavigator'
+import { AuctionList } from '../components/auction/AuctionList'
 
 type Nav = StackNavigationProp<RootStackParamList>
 export function CustomerDashboard() {
@@ -104,32 +105,8 @@ export function CustomerDashboard() {
           {/* Live Auctions */}
           <View style={[styles.card, theme === 'glass' && glassCard]}>
             <Text style={styles.cardTitle}>Live Auctions</Text>
-            <View style={styles.cardContent}>
-              <View style={styles.auctionItem}>
-                <View style={styles.auctionHeader}>
-                  <Text style={styles.auctionTitle}>Kitchen Renovation</Text>
-                  <Text style={styles.auctionPrice}>$200</Text>
-                </View>
-                <Text style={styles.auctionSubtitle}>Current highest bid</Text>
-                <View style={styles.auctionFooter}>
-                  <Text style={styles.auctionTime}>Ends in 2h 15m</Text>
-                  <TouchableOpacity style={styles.bidButton}>
-                    <Text style={styles.bidButtonText}>Place Bid</Text>
-                  </TouchableOpacity>
-                </View>
-              </View>
-              
-              <View style={styles.auctionItem}>
-                <View style={styles.auctionHeader}>
-                  <Text style={styles.auctionTitle}>Bathroom Repair</Text>
-                  <Text style={styles.auctionPrice}>$120</Text>
-                </View>
-                <Text style={styles.auctionSubtitle}>Your bid is winning</Text>
-                <View style={styles.auctionFooter}>
-                  <Text style={styles.auctionTime}>Ends in 45m</Text>
-                  <Text style={styles.winningText}>Winning</Text>
-                </View>
-              </View>
+            <View style={{ marginTop: 8 }}>
+              <AuctionList filters={{ status: 'active' }} embedded limit={5} emptyText="No live auctions" />
             </View>
           </View>
 
