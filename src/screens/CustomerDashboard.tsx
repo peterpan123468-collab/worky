@@ -104,7 +104,12 @@ export function CustomerDashboard() {
 
           {/* Live Auctions */}
           <View style={[styles.card, theme === 'glass' && glassCard]}>
-            <Text style={styles.cardTitle}>Live Auctions</Text>
+            <View style={styles.cardHeaderRow}>
+              <Text style={styles.cardTitle}>Live Auctions</Text>
+              <TouchableOpacity onPress={() => navigation.navigate('BrowseAuctions')}>
+                <Text style={styles.viewAllText}>View all</Text>
+              </TouchableOpacity>
+            </View>
             <View style={{ marginTop: 8 }}>
               <AuctionList filters={{ status: 'active' }} embedded limit={5} emptyText="No live auctions" />
             </View>
@@ -232,6 +237,16 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#ffffff',
     marginBottom: 16,
+  },
+  cardHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 8,
+  },
+  viewAllText: {
+    color: 'rgba(255,255,255,0.85)',
+    fontSize: 14,
   },
   cardContent: {
     gap: 12,

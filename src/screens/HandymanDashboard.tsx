@@ -85,7 +85,12 @@ export function HandymanDashboard() {
 
           {/* Active Auctions */}
           <View style={[styles.card, theme === 'glass' && glassCard]}>
-            <Text style={styles.cardTitle}>Your Active Auctions</Text>
+            <View style={styles.cardHeaderRow}>
+              <Text style={styles.cardTitle}>Your Active Auctions</Text>
+              <TouchableOpacity onPress={() => navigation.navigate('BrowseAuctions')}>
+                <Text style={styles.viewAllText}>View all</Text>
+              </TouchableOpacity>
+            </View>
             <AuctionList filters={{ status: 'active', handymanId: user?.id }} embedded limit={3} emptyText="No active auctions" />
           </View>
         </View>
@@ -176,6 +181,16 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#ffffff',
     marginBottom: 16,
+  },
+  cardHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 8,
+  },
+  viewAllText: {
+    color: 'rgba(255,255,255,0.85)',
+    fontSize: 14,
   },
   cardContent: {
     gap: 12,
