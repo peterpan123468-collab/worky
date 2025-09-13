@@ -83,7 +83,7 @@ export function AuctionDetail() {
 
         <View style={[styles.section, theme === 'glass' && glassCard]}>
           <Text style={styles.sectionTitle}>Place a Bid</Text>
-          <BiddingInterface auctionId={auction.id} currentHighest={current} />
+          <BiddingInterface auctionId={auction.id} currentHighest={current} disabled={auction.status !== 'active'} />
         </View>
 
         <View style={[styles.section, theme === 'glass' && glassCard]}>

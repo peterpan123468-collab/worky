@@ -9,13 +9,17 @@ import { useToast } from '../../contexts/ToastContext'
 interface Props {
   auctionId: string
   currentHighest: number
+  disabled?: boolean
 }
 
-export function BiddingInterface({ auctionId, currentHighest }: Props) {
+export function BiddingInterface({ auctionId, currentHighest, disabled = false }: Props) {
   const { user } = useAuth()
-  const { highestBid, placeBid, placing, error } = useBidding(auctionId)
-  const [amount, setAmount] = useState<number>(nextValidBid(currentHighest))
   const { show } = useToast()
+  const { highestBid, placeBid, placing, error } = useBidding(auctionId, {
+    currentUserId: user?.id,
+    onOutbid: () => show("You've been outbid", { type: 'info' }),
+  })
+  const [amount, setAmount] = useState<number>(nextValidBid(currentHighest))
 
   const submit = async () => {
     if (!user) return
@@ -34,13 +38,15 @@ export function BiddingInterface({ auctionId, currentHighest }: Props) {
         value={String(amount)}
         onChangeText={(t) => setAmount(parseInt(t || '0', 10))}
         keyboardType="numeric"
-        style={styles.input}
+        style={[styles.input, disabled && { opacity: 0.6 }]}
+        editable={!disabled && !placing}
       />
-      <Button onPress={submit} disabled={placing} style={{ marginLeft: 8 }}>
+      <Button onPress={submit} disabled={placing || disabled} style={{ marginLeft: 8 }}>
         {placing ? 'Placing…' : 'Place Bid'}
       </Button>
       <Text style={styles.meta}>Highest: {formatCHF(highestBid ?? currentHighest)}</Text>
       {error ? <Text style={styles.error}>{error}</Text> : null}
+      {disabled ? <Text style={[styles.error, { color: '#f59e0b' }]}>Bidding is closed</Text> : null}
     </View>
   )
 }

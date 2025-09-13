@@ -1,13 +1,19 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { auctionService } from '../services/auction.service'
 import { supabase } from '../lib/supabase'
 import { AuctionBid } from '../types/database.types'
 
-export function useBidding(auctionId: string) {
+interface BiddingOptions {
+  currentUserId?: string
+  onOutbid?: () => void
+}
+
+export function useBidding(auctionId: string, opts: BiddingOptions = {}) {
   const [highestBid, setHighestBid] = useState<number | null>(null)
   const [placing, setPlacing] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [bids, setBids] = useState<AuctionBid[]>([])
+  const wasWinningRef = useRef<boolean>(false)
 
   useEffect(() => {
     if (!auctionId) return
@@ -19,7 +25,14 @@ export function useBidding(auctionId: string) {
       .order('created_at', { ascending: false })
       .limit(20)
       .then(({ data }) => {
-        if (data) setBids(data as AuctionBid[])
+        if (data) {
+          const list = data as AuctionBid[]
+          setBids(list)
+          if (opts.currentUserId) {
+            const top = list[0]
+            wasWinningRef.current = !!(top && top.is_winning_bid && top.bidder_id === opts.currentUserId)
+          }
+        }
       })
     const channel = supabase
       .channel(`auction:${auctionId}`)
@@ -30,6 +43,13 @@ export function useBidding(auctionId: string) {
           const bid = payload.new as AuctionBid
           if (bid?.bid_amount) setHighestBid((prev) => Math.max(prev ?? 0, bid.bid_amount))
           if (bid) setBids((prev) => [bid as AuctionBid, ...prev].slice(0, 20))
+          if (opts.currentUserId && bid.is_winning_bid) {
+            const nowWinning = bid.bidder_id === opts.currentUserId
+            if (wasWinningRef.current && !nowWinning) {
+              opts.onOutbid?.()
+            }
+            wasWinningRef.current = nowWinning
+          }
         }
       )
       .subscribe()
@@ -37,7 +57,7 @@ export function useBidding(auctionId: string) {
     return () => {
       supabase.removeChannel(channel)
     }
-  }, [auctionId])
+  }, [auctionId, opts.currentUserId])
 
   const placeBid = useCallback(async (bidderId: string, amount: number, maxAutoBid?: number) => {
     try {
