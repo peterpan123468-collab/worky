@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { View, Text, StyleSheet, TextInput, Alert } from 'react-native'
+import { View, Text, StyleSheet, TextInput, Alert, Switch } from 'react-native'
 import { Card, CardContent, CardHeader } from '../../components/ui/card'
 import { Button } from '../../components/ui/button'
 import { useAuth } from '../../contexts/AuthContext'
@@ -19,6 +19,8 @@ export function AuctionCreationForm({ onCreated }: Props) {
   const [startingPrice, setStartingPrice] = useState<number>(CHF_MINIMUM)
   const [durationMin, setDurationMin] = useState<number>(60)
   const [reservePrice, setReservePrice] = useState<number | undefined>(undefined)
+  const [autoExtendEnabled, setAutoExtendEnabled] = useState(true)
+  const [autoExtendMinutes, setAutoExtendMinutes] = useState<number>(2)
   const [submitting, setSubmitting] = useState(false)
 
   const start = nowSwiss()
@@ -38,8 +40,8 @@ export function AuctionCreationForm({ onCreated }: Props) {
         starting_price: sanitizeStartingPrice(startingPrice),
         reserve_price: reservePrice ?? null,
         bid_increment: CHF_INCREMENT,
-        auto_extend: true,
-        auto_extend_minutes: 2,
+        auto_extend: autoExtendEnabled,
+        auto_extend_minutes: autoExtendEnabled ? autoExtendMinutes : null,
       }
       const auction = await auctionService.createAuction(user.id, payload)
       onCreated?.(auction.id)
@@ -95,6 +97,22 @@ export function AuctionCreationForm({ onCreated }: Props) {
             placeholder="Reserve price"
           />
         </View>
+        <View style={[styles.row, styles.inline]}>
+          <Text style={styles.label}>Auto-extend on late bids</Text>
+          <Switch value={autoExtendEnabled} onValueChange={setAutoExtendEnabled} />
+        </View>
+        {autoExtendEnabled && (
+          <View style={styles.row}>
+            <Text style={styles.label}>Auto-extend Minutes</Text>
+            <TextInput
+              value={String(autoExtendMinutes)}
+              onChangeText={(t) => setAutoExtendMinutes(parseInt(t || '2', 10) || 2)}
+              style={styles.input}
+              keyboardType="numeric"
+              placeholder="Minutes"
+            />
+          </View>
+        )}
         <Button onPress={create} disabled={submitting} style={{ marginTop: 12 }}>
           {submitting ? 'Creating…' : 'Create Auction'}
         </Button>
@@ -108,8 +126,8 @@ const styles = StyleSheet.create({
   title: { fontSize: 18, fontWeight: '600', marginBottom: 6 },
   subtitle: { color: '#666' },
   row: { marginTop: 12 },
+  inline: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   label: { marginBottom: 6, color: '#444' },
   input: { borderWidth: 1, borderColor: '#e5e5e5', borderRadius: 8, paddingHorizontal: 12, paddingVertical: 10 },
   hint: { marginTop: 4, color: '#666', fontSize: 12 },
 })
-
