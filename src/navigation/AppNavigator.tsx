@@ -9,6 +9,7 @@ import { CustomerDashboard } from '../screens/CustomerDashboard'
 import { TestAuthScreen } from '../screens/TestAuthScreen'
 import { CreateAuction } from '../screens/CreateAuction'
 import { BrowseAuctions } from '../screens/BrowseAuctions'
+import { AuctionDetail } from '../screens/AuctionDetail'
 import { useAuth } from '../contexts/AuthContext'
 import { UserType } from '../types/database.types'
 
@@ -20,6 +21,7 @@ export type RootStackParamList = {
   TestAuth: undefined
   CreateAuction: undefined
   BrowseAuctions: undefined
+  AuctionDetail: { id: string }
 }
 
 const Stack = createStackNavigator<RootStackParamList>()
@@ -62,6 +64,7 @@ export function AppNavigator() {
             <Stack.Screen name="CustomerDashboard" component={CustomerDashboard} />
             <Stack.Screen name="CreateAuction" component={CreateAuction} options={{ headerShown: true, title: 'Create Auction' }} />
             <Stack.Screen name="BrowseAuctions" component={BrowseAuctions} options={{ headerShown: true, title: 'Auctions' }} />
+            <Stack.Screen name="AuctionDetail" component={AuctionDetail} options={{ headerShown: true, title: 'Auction' }} />
           </>
         )}
         <Stack.Screen
