@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useMemo, useState } from 'react'
 import { View, Text, StyleSheet, TextInput, Alert, Switch } from 'react-native'
 import { Card, CardContent, CardHeader } from '../../components/ui/card'
 import { Button } from '../../components/ui/button'
@@ -25,6 +25,17 @@ export function AuctionCreationForm({ onCreated }: Props) {
 
   const start = nowSwiss()
   const end = addMinutes(start, durationMin)
+
+  const errors = useMemo(() => {
+    const e: Record<string, string> = {}
+    if (startingPrice < CHF_MINIMUM) e.startingPrice = `Minimum starting price is CHF ${CHF_MINIMUM}`
+    if (durationMin < 15 || durationMin > 1440) e.durationMin = 'Duration must be between 15 and 1440 minutes'
+    if (reservePrice !== undefined && reservePrice < startingPrice) e.reservePrice = 'Reserve price must be >= starting price'
+    if (autoExtendEnabled && (autoExtendMinutes < 1 || autoExtendMinutes > 10)) e.autoExtendMinutes = 'Auto-extend must be between 1 and 10 minutes'
+    return e
+  }, [startingPrice, durationMin, reservePrice, autoExtendEnabled, autoExtendMinutes])
+
+  const isValid = Object.keys(errors).length === 0
 
   const create = async () => {
     if (!user) return Alert.alert('Not signed in')
@@ -78,6 +89,7 @@ export function AuctionCreationForm({ onCreated }: Props) {
             placeholder="CHF"
           />
           <Text style={styles.hint}>{formatCHF(startingPrice)} (min CHF {CHF_MINIMUM})</Text>
+          {errors.startingPrice ? <Text style={styles.error}>{errors.startingPrice}</Text> : null}
         </View>
         <View style={styles.row}><Text style={styles.label}>Duration (min)</Text>
           <TextInput
@@ -87,6 +99,7 @@ export function AuctionCreationForm({ onCreated }: Props) {
             keyboardType="numeric"
             placeholder="Duration in minutes"
           />
+          {errors.durationMin ? <Text style={styles.error}>{errors.durationMin}</Text> : null}
         </View>
         <View style={styles.row}><Text style={styles.label}>Reserve Price (opt.)</Text>
           <TextInput
@@ -96,6 +109,7 @@ export function AuctionCreationForm({ onCreated }: Props) {
             keyboardType="numeric"
             placeholder="Reserve price"
           />
+          {errors.reservePrice ? <Text style={styles.error}>{errors.reservePrice}</Text> : null}
         </View>
         <View style={[styles.row, styles.inline]}>
           <Text style={styles.label}>Auto-extend on late bids</Text>
@@ -111,9 +125,10 @@ export function AuctionCreationForm({ onCreated }: Props) {
               keyboardType="numeric"
               placeholder="Minutes"
             />
+            {errors.autoExtendMinutes ? <Text style={styles.error}>{errors.autoExtendMinutes}</Text> : null}
           </View>
         )}
-        <Button onPress={create} disabled={submitting} style={{ marginTop: 12 }}>
+        <Button onPress={create} disabled={submitting || !isValid} style={{ marginTop: 12, opacity: (!isValid || submitting) ? 0.6 : 1 }}>
           {submitting ? 'Creating…' : 'Create Auction'}
         </Button>
       </CardContent>
@@ -130,4 +145,5 @@ const styles = StyleSheet.create({
   label: { marginBottom: 6, color: '#444' },
   input: { borderWidth: 1, borderColor: '#e5e5e5', borderRadius: 8, paddingHorizontal: 12, paddingVertical: 10 },
   hint: { marginTop: 4, color: '#666', fontSize: 12 },
+  error: { marginTop: 4, color: '#ef4444', fontSize: 12 },
 })

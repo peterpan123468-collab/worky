@@ -10,6 +10,7 @@ import { Auction } from '../types/database.types'
 import { AuctionTimer } from '../components/auction/AuctionTimer'
 import { BiddingInterface } from '../components/auction/BiddingInterface'
 import { formatCHF } from '../utils/currency'
+import { supabase } from '../lib/supabase'
 
 type Route = RouteProp<RootStackParamList, 'AuctionDetail'>
 
@@ -34,6 +35,20 @@ export function AuctionDetail() {
       }
     }
     load()
+    // Realtime updates for this auction
+    const channel = supabase
+      .channel(`auction-row:${params.id}`)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'auctions', filter: `id=eq.${params.id}` }, (payload) => {
+        const next = payload.new as Partial<Auction> | null
+        if (next) {
+          setAuction((prev) => (prev ? { ...prev, ...next } as Auction : (next as Auction)))
+        }
+      })
+      .subscribe()
+
+    return () => {
+      supabase.removeChannel(channel)
+    }
   }, [params.id])
 
   if (loading) {
@@ -85,4 +100,3 @@ const styles = StyleSheet.create({
   section: { margin: 16, padding: 16, borderRadius: 12, backgroundColor: 'rgba(0,0,0,0.35)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.12)' },
   sectionTitle: { color: '#fff', fontSize: 16, fontWeight: '600', marginBottom: 8 },
 })
-
