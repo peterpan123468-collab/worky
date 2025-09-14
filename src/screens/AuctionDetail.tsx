@@ -129,12 +129,25 @@ export function AuctionDetail() {
 
               return filteredBids.map((b) => (
                 <View key={b.id} style={styles.bidRow}>
-                  <View style={styles.bidInfo}>
-                    <Text style={styles.bidAmount}>{formatCHF(b.bid_amount)}</Text>
-                    {b.bidder_id === user?.id && (
-                      <Text style={styles.yourBidLabel}>(Your bid)</Text>
-                    )}
+                  <View style={styles.bidLeftSection}>
+                    {/* Placeholder Avatar */}
+                    <View style={[styles.avatar, b.bidder_id === user?.id && styles.yourAvatar]}>
+                      <Text style={styles.avatarText}>
+                        {b.bidder_id === user?.id
+                          ? 'Y'
+                          : b.bidder_id.charAt(0).toUpperCase()
+                        }
+                      </Text>
+                    </View>
+
+                    <View style={styles.bidInfo}>
+                      <Text style={styles.bidAmount}>{formatCHF(b.bid_amount)}</Text>
+                      {b.bidder_id === user?.id && (
+                        <Text style={styles.yourBidLabel}>(Your bid)</Text>
+                      )}
+                    </View>
                   </View>
+
                   <Text style={styles.bidMeta}>{formatSwissDateTime(b.created_at)}</Text>
                 </View>
               ))
@@ -160,10 +173,30 @@ const styles = StyleSheet.create({
   value: { color: '#ffffff', fontWeight: '600' },
   section: { margin: 16, padding: 16, borderRadius: 16, backgroundColor: 'rgba(0, 0, 0, 0.35)', borderWidth: 1, borderColor: 'rgba(255, 255, 255, 0.12)' },
   sectionTitle: { color: '#ffffff', fontSize: 16, fontWeight: '600', marginBottom: 8 },
-  bidRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: 'rgba(255, 255, 255, 0.08)' },
+  bidRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: 'rgba(255, 255, 255, 0.08)' },
+  bidLeftSection: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  avatar: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.3)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  yourAvatar: {
+    backgroundColor: 'rgba(0, 255, 0, 0.2)',
+    borderColor: 'rgba(0, 255, 0, 0.5)',
+  },
+  avatarText: {
+    color: '#ffffff',
+    fontSize: 14,
+    fontWeight: '600',
+  },
   bidInfo: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   bidAmount: { color: '#ffffff', fontWeight: '600' },
   yourBidLabel: { color: 'rgba(0, 255, 0, 0.8)', fontSize: 12, fontWeight: '500' },
-  bidMeta: { color: 'rgba(255, 255, 255, 0.7)' },
+  bidMeta: { color: 'rgba(255, 255, 255, 0.7)', fontSize: 12 },
   ownerInfo: { color: 'rgba(255, 255, 255, 0.8)', fontSize: 16, marginBottom: 8 },
 })
