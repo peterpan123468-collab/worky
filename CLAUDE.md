@@ -257,3 +257,42 @@ This context document ensures Claude Code maintains focus on the auction system 
 - ✅ Before starting new phases
 
 **CURRENT STATUS**: Phase 3 COMPLETED with comprehensive testing - ready for Phase 5 kickoff.
+
+## 🔒 Cloud Enforcement Rules (Mandatory)
+
+These rules MUST be followed by agents and contributors for every change. Non‑compliant changes are considered incomplete.
+
+1) Master Plan Is The Source Of Truth
+- After ANY change (feature, scope, behavior, or requirement), update the master plan:
+  - File: `/docs/revised-implementation-plan.md`
+  - Reflect newly completed items, newly added scope, timeline shifts, and rationale.
+- If requirements change or are clarified, the plan MUST be amended in the same PR. Otherwise, the prior plan remains authoritative and changes are not respected.
+
+2) User Flow Synchronization
+- Any update to flows, screens, or roles MUST be reflected in:
+  - File: `/docs/user-types-and-journeys.md`
+- The update should explicitly call out what changed and why (new steps, renamed screens, added decision points, etc.).
+
+3) Card UI Style Standard (Default Style For All Cards)
+- New cards MUST match the existing card style. Only deviate (e.g., special colors) if explicitly requested in requirements.
+- Use the shared Card components: `Card`, `CardHeader`, `CardContent` from `src/components/ui/card.tsx`.
+- Default style:
+  - Base (light/default): use `Card`’s defaults from `ui/card.tsx` (border, white background). Prefer borderRadius `16` on card containers for consistency.
+  - Glass theme: ALWAYS merge the glass overlay style from `src/components/themeStyles.ts`:
+    - `import { glassCard } from '../components/themeStyles'`
+    - Example: `<Card style={[styles.card, theme === 'glass' && glassCard]}>`
+    - glassCard currently is:
+      - `backgroundColor: 'rgba(0, 0, 0, 0.35)'`
+      - `borderWidth: 1`
+      - `borderColor: 'rgba(255, 255, 255, 0.12)'`
+- Text color guidance under glass theme:
+  - Titles/headings: `#ffffff`
+  - Subtitles/labels: `rgba(255, 255, 255, 0.7–0.85)`
+  - Values/body: `#ffffff`
+- Status pill (glass): light pill with `backgroundColor: 'rgba(255,255,255,0.12)'`, text `#e5e7eb`.
+- Do NOT create ad‑hoc card containers when a Card exists. Use `Card`, `CardHeader`, `CardContent` and merge `glassCard` when `theme === 'glass'`.
+
+4) Testing Requirements
+- Every new business logic path MUST have tests (unit/integration as appropriate in `src/services` and related areas).
+- Every new UI component MUST have an accompanying end‑to‑end (E2E) test in `e2e/` that covers its primary happy‑path behavior.
+- When updating flows or adding screens, update or add E2E coverage accordingly.

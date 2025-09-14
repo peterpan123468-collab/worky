@@ -45,28 +45,38 @@ class AuctionService {
     console.log('📝 Database insert payload:', JSON.stringify(insert, null, 2))
 
     try {
-      // First attempt with full insert (preferred schema)
-      let { data, error } = await supabase
-        .from('auctions')
-        .insert(insert)
-        .select('*')
-        .single()
+      // Attempt insert; on PGRST204, strip the missing column and retry a few times
+      let attempt = 0
+      let maxAttempts = 5
+      let payload: any = { ...insert }
+      let data: any = null
+      let error: any = null
 
-      // Handle potential schema mismatch for newer columns gracefully
-      if (error && error.code === 'PGRST204' &&
-          (error.message?.includes("'auto_extend'") || error.message?.includes('auto_extend_minutes'))) {
-        console.warn('⚠️ Schema mismatch detected for auto-extend fields. Retrying without them...')
-        // Retry without the optional auto-extend fields for backward compatibility
-        const { auto_extend, auto_extend_minutes, ...legacyInsert } = insert as any
-
-        const retry = await supabase
+      while (attempt < maxAttempts) {
+        const res = await supabase
           .from('auctions')
-          .insert(legacyInsert)
+          .insert(payload)
           .select('*')
           .single()
 
-        data = retry.data
-        error = retry.error
+        data = res.data
+        error = res.error
+
+        if (!error) break
+
+        // If schema cache says a column is missing, remove it and retry
+        if (error.code === 'PGRST204' && error.message) {
+          const match = error.message.match(/'([^']+)'/)
+          const missingCol = match?.[1]
+          if (missingCol && payload.hasOwnProperty(missingCol)) {
+            console.warn(`⚠️ Schema mismatch: column ${missingCol} missing. Retrying without it...`)
+            delete payload[missingCol]
+            attempt++
+            continue
+          }
+        }
+        // Non-retriable error
+        break
       }
 
       if (error) {
