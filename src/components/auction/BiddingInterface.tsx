@@ -38,7 +38,9 @@ export function BiddingInterface({ auctionId, currentHighest, disabled = false }
     if (!user) return
     const res = await placeBid(user.id, amount)
     if (res.success) {
-      show('Bid placed successfully', { type: 'success' })
+      show(currentUserBid ? 'Bid updated successfully' : 'Bid placed successfully', { type: 'success' })
+      // Update the input to show next valid bid for potential future updates
+      setAmount(amount + 5)
     } else if (res.error) {
       show(res.error, { type: 'error', duration: 4000 })
     }

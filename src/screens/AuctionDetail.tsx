@@ -118,12 +118,27 @@ export function AuctionDetail() {
           {bids.length === 0 ? (
             <Text style={{ color: 'rgba(255,255,255,0.7)' }}>No bids yet. Be the first!</Text>
           ) : (
-            bids.map((b) => (
-              <View key={b.id} style={styles.bidRow}>
-                <Text style={styles.bidAmount}>{formatCHF(b.bid_amount)}</Text>
-                <Text style={styles.bidMeta}>{formatSwissDateTime(b.created_at)}</Text>
-              </View>
-            ))
+            (() => {
+              // Filter bids based on user type
+              const filteredBids = user?.id === auction.handyman_id
+                ? bids // Handyman sees ALL bids
+                : bids.filter(bid =>
+                    bid.bidder_id !== user?.id || // Other users' bids
+                    bid.id === bids.find(b => b.bidder_id === user?.id)?.id // Only user's latest bid
+                  )
+
+              return filteredBids.map((b) => (
+                <View key={b.id} style={styles.bidRow}>
+                  <View style={styles.bidInfo}>
+                    <Text style={styles.bidAmount}>{formatCHF(b.bid_amount)}</Text>
+                    {b.bidder_id === user?.id && (
+                      <Text style={styles.yourBidLabel}>(Your bid)</Text>
+                    )}
+                  </View>
+                  <Text style={styles.bidMeta}>{formatSwissDateTime(b.created_at)}</Text>
+                </View>
+              ))
+            })()
           )}
         </View>
         </ScrollView>
@@ -145,8 +160,10 @@ const styles = StyleSheet.create({
   value: { color: '#ffffff', fontWeight: '600' },
   section: { margin: 16, padding: 16, borderRadius: 16, backgroundColor: 'rgba(0, 0, 0, 0.35)', borderWidth: 1, borderColor: 'rgba(255, 255, 255, 0.12)' },
   sectionTitle: { color: '#ffffff', fontSize: 16, fontWeight: '600', marginBottom: 8 },
-  bidRow: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: 'rgba(255, 255, 255, 0.08)' },
+  bidRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: 'rgba(255, 255, 255, 0.08)' },
+  bidInfo: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   bidAmount: { color: '#ffffff', fontWeight: '600' },
+  yourBidLabel: { color: 'rgba(0, 255, 0, 0.8)', fontSize: 12, fontWeight: '500' },
   bidMeta: { color: 'rgba(255, 255, 255, 0.7)' },
   ownerInfo: { color: 'rgba(255, 255, 255, 0.8)', fontSize: 16, marginBottom: 8 },
 })
