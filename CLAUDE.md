@@ -258,7 +258,7 @@ This context document ensures Claude Code maintains focus on the auction system 
 
 **CURRENT STATUS**: Phase 3 COMPLETED with comprehensive testing - ready for Phase 5 kickoff.
 
-## 🔒 Cloud Enforcement Rules (Mandatory)
+## 🔒 Claude Enforcement Rules (Mandatory)
 
 These rules MUST be followed by agents and contributors for every change. Non‑compliant changes are considered incomplete.
 
