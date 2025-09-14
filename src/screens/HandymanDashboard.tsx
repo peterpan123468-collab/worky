@@ -11,6 +11,7 @@ import { formatCHF } from '../utils/currency'
 import { useNavigation } from '@react-navigation/native'
 import { StackNavigationProp } from '@react-navigation/stack'
 import { RootStackParamList } from '../navigation/AppNavigator'
+import { Ionicons } from '@expo/vector-icons'
 
 type Nav = StackNavigationProp<RootStackParamList>
 export function HandymanDashboard() {
@@ -74,9 +75,19 @@ export function HandymanDashboard() {
                 <Text style={{ color: 'rgba(255,255,255,0.7)' }}>No recent bids</Text>
               ) : recentBids.map((b) => (
                 <View key={b.id} style={styles.activityItem}>
-                  <View style={styles.activityInfo}>
-                    <Text style={styles.activityTitle}>New bid placed</Text>
-                    <Text style={styles.activitySubtitle}>{new Date(b.created_at).toLocaleString()}</Text>
+                  <View style={styles.activityLeft}>
+                    {/* Person Avatar for Bidder */}
+                    <View style={styles.bidderAvatar}>
+                      <Ionicons
+                        name="person"
+                        size={16}
+                        color="rgba(255, 255, 255, 0.8)"
+                      />
+                    </View>
+                    <View style={styles.activityInfo}>
+                      <Text style={styles.activityTitle}>New bid placed</Text>
+                      <Text style={styles.activitySubtitle}>{new Date(b.created_at).toLocaleString()}</Text>
+                    </View>
                   </View>
                   <Text style={styles.priceText}>{formatCHF(b.bid_amount)}</Text>
                 </View>
@@ -247,6 +258,22 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.1)',
+  },
+  activityLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+    gap: 10,
+  },
+  bidderAvatar: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: 'rgba(255, 255, 255, 0.15)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.2)',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   activityInfo: {
     flex: 1,
