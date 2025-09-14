@@ -40,11 +40,14 @@ export function AuthScreen() {
     clearError()
   }, [activeTab, clearError])
 
-  // TODO: Remove test prefill before production
+  // DEV ONLY: Prefill test credentials for Sign in to speed testing
+  // TODO: Remove this before production if not desired
+  const TEST_EMAIL = 'atemndobs@gmail.com'
+  const TEST_PASSWORD = 'Atem1234'
   useEffect(() => {
-    if (activeTab === 'signin') {
-      setEmail('atemndobs@gmail.com')
-      setPassword('Atem1234')
+    if (__DEV__ && activeTab === 'signin') {
+      setEmail(TEST_EMAIL)
+      setPassword(TEST_PASSWORD)
     }
   }, [activeTab])
 
