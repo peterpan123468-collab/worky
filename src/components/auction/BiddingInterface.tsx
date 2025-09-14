@@ -15,7 +15,7 @@ interface Props {
 export function BiddingInterface({ auctionId, currentHighest, disabled = false }: Props) {
   const { user } = useAuth()
   const { show } = useToast()
-  const { highestBid, placeBid, placing, error } = useBidding(auctionId, {
+  const { highestBid, placeBid, placing, error, currentUserBid } = useBidding(auctionId, {
     currentUserId: user?.id,
     onOutbid: () => show("You've been outbid", { type: 'info' }),
   })
@@ -46,6 +46,12 @@ export function BiddingInterface({ auctionId, currentHighest, disabled = false }
 
   return (
     <View style={styles.container}>
+      {currentUserBid && (
+        <View style={styles.currentBidRow}>
+          <Text style={styles.currentBidLabel}>Your current bid: {formatCHF(currentUserBid.bid_amount)}</Text>
+        </View>
+      )}
+
       <View style={styles.bidRow}>
         {/* Highest Bid Section */}
         <View style={styles.bidGroup}>
@@ -57,7 +63,7 @@ export function BiddingInterface({ auctionId, currentHighest, disabled = false }
 
         {/* Your Bid Section */}
         <View style={styles.bidGroup}>
-          <Text style={styles.label}>Your bid (CHF)</Text>
+          <Text style={styles.label}>{currentUserBid ? 'New bid (CHF)' : 'Your bid (CHF)'}</Text>
           <View style={styles.inputContainer}>
             <TextInput
               value={amount.toFixed(2)}
@@ -87,9 +93,9 @@ export function BiddingInterface({ auctionId, currentHighest, disabled = false }
           </View>
         </View>
 
-        {/* Place Bid Button */}
+        {/* Place/Update Bid Button */}
         <Button onPress={submit} disabled={placing || disabled} style={styles.button}>
-          {placing ? 'Placing…' : 'Place Bid'}
+          {placing ? 'Updating…' : currentUserBid ? 'Update Bid' : 'Place Bid'}
         </Button>
       </View>
 
@@ -102,6 +108,21 @@ export function BiddingInterface({ auctionId, currentHighest, disabled = false }
 const styles = StyleSheet.create({
   container: {
     marginTop: 8,
+  },
+  currentBidRow: {
+    marginBottom: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    backgroundColor: 'rgba(0, 100, 0, 0.2)',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(0, 255, 0, 0.3)',
+  },
+  currentBidLabel: {
+    color: 'rgba(0, 255, 0, 0.9)',
+    fontSize: 14,
+    fontWeight: '600',
+    textAlign: 'center',
   },
   bidRow: {
     flexDirection: 'row',

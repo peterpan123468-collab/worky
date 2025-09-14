@@ -13,6 +13,7 @@ export function useBidding(auctionId: string, opts: BiddingOptions = {}) {
   const [placing, setPlacing] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [bids, setBids] = useState<AuctionBid[]>([])
+  const [currentUserBid, setCurrentUserBid] = useState<AuctionBid | null>(null)
   const wasWinningRef = useRef<boolean>(false)
 
   useEffect(() => {
@@ -31,6 +32,9 @@ export function useBidding(auctionId: string, opts: BiddingOptions = {}) {
           if (opts.currentUserId) {
             const top = list[0]
             wasWinningRef.current = !!(top && top.is_winning_bid && top.bidder_id === opts.currentUserId)
+            // Find the current user's bid (most recent bid from this user)
+            const userBid = list.find(bid => bid.bidder_id === opts.currentUserId)
+            setCurrentUserBid(userBid || null)
           }
         }
       })
@@ -42,7 +46,13 @@ export function useBidding(auctionId: string, opts: BiddingOptions = {}) {
         (payload) => {
           const bid = payload.new as AuctionBid
           if (bid?.bid_amount) setHighestBid((prev) => Math.max(prev ?? 0, bid.bid_amount))
-          if (bid) setBids((prev) => [bid as AuctionBid, ...prev].slice(0, 20))
+          if (bid) {
+            setBids((prev) => [bid as AuctionBid, ...prev].slice(0, 20))
+            // Update current user's bid if this bid is from current user
+            if (opts.currentUserId && bid.bidder_id === opts.currentUserId) {
+              setCurrentUserBid(bid)
+            }
+          }
           if (opts.currentUserId && bid.is_winning_bid) {
             const nowWinning = bid.bidder_id === opts.currentUserId
             if (wasWinningRef.current && !nowWinning) {
@@ -76,5 +86,5 @@ export function useBidding(auctionId: string, opts: BiddingOptions = {}) {
     }
   }, [auctionId])
 
-  return { highestBid, placing, error, placeBid, bids }
+  return { highestBid, placing, error, placeBid, bids, currentUserBid }
 }
