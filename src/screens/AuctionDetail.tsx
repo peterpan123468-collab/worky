@@ -3,8 +3,6 @@ import { View, Text, StyleSheet, ScrollView, ActivityIndicator, Alert } from 're
 import { RouteProp, useRoute } from '@react-navigation/native'
 import { RootStackParamList } from '../navigation/AppNavigator'
 import { Background } from '../components/Background'
-import { useTheme } from '../contexts/ThemeContext'
-import { glassCard } from '../components/themeStyles'
 import { auctionService } from '../services/auction.service'
 import { Auction } from '../types/database.types'
 import { AuctionTimer } from '../components/auction/AuctionTimer'
@@ -19,11 +17,11 @@ type Route = RouteProp<RootStackParamList, 'AuctionDetail'>
 
 export function AuctionDetail() {
   const { params } = useRoute<Route>()
-  const { theme } = useTheme()
   const [auction, setAuction] = useState<Auction | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const { user } = useAuth()
+  const { bids } = useBidding(auction?.id || '')
 
   useEffect(() => {
     const load = async () => {
@@ -71,12 +69,11 @@ export function AuctionDetail() {
   }
 
   const current = auction.current_highest_bid ?? auction.starting_price
-  const { bids } = useBidding(auction.id)
 
   return (
     <Background style={styles.background}>
       <ScrollView contentContainerStyle={styles.container}>
-        <View style={[styles.header, theme === 'glass' && glassCard]}>
+        <View style={styles.header}>
           <Text style={styles.title}>{auction.title}</Text>
           <Text style={styles.subtitle}>{auction.service_type} · {auction.region}</Text>
           <View style={styles.row}><Text style={styles.label}>Current</Text><Text style={styles.value}>{formatCHF(current)}</Text></View>
@@ -84,7 +81,7 @@ export function AuctionDetail() {
         </View>
 
         {auction.status !== 'active' && (
-          <View style={[styles.section, theme === 'glass' && glassCard]}>
+          <View style={styles.section}>
             <Text style={styles.sectionTitle}>Auction Summary</Text>
             <View style={styles.row}><Text style={styles.label}>Status</Text><Text style={styles.value}>{auction.status}</Text></View>
             <View style={styles.row}><Text style={styles.label}>Final Price</Text><Text style={styles.value}>{formatCHF(auction.current_highest_bid ?? auction.starting_price)}</Text></View>
@@ -94,12 +91,12 @@ export function AuctionDetail() {
           </View>
         )}
 
-        <View style={[styles.section, theme === 'glass' && glassCard]}>
+        <View style={styles.section}>
           <Text style={styles.sectionTitle}>Place a Bid</Text>
           <BiddingInterface auctionId={auction.id} currentHighest={current} disabled={auction.status !== 'active'} />
         </View>
 
-        <View style={[styles.section, theme === 'glass' && glassCard]}>
+        <View style={styles.section}>
           <Text style={styles.sectionTitle}>Recent Bids</Text>
           {bids.length === 0 ? (
             <Text style={{ color: 'rgba(255,255,255,0.7)' }}>No bids yet. Be the first!</Text>
@@ -121,15 +118,15 @@ const styles = StyleSheet.create({
   background: { flex: 1 },
   container: { paddingVertical: 16 },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  header: { margin: 16, padding: 16, borderRadius: 12, backgroundColor: 'rgba(0,0,0,0.35)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.12)' },
-  title: { color: '#fff', fontSize: 20, fontWeight: '700' },
-  subtitle: { color: 'rgba(255,255,255,0.8)', marginTop: 6 },
+  header: { margin: 16, padding: 16, borderRadius: 16, backgroundColor: 'rgba(0, 0, 0, 0.35)', borderWidth: 1, borderColor: 'rgba(255, 255, 255, 0.12)' },
+  title: { color: '#ffffff', fontSize: 20, fontWeight: '700' },
+  subtitle: { color: 'rgba(255, 255, 255, 0.8)', marginTop: 6 },
   row: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 10 },
-  label: { color: 'rgba(255,255,255,0.7)' },
-  value: { color: '#fff', fontWeight: '600' },
-  section: { margin: 16, padding: 16, borderRadius: 12, backgroundColor: 'rgba(0,0,0,0.35)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.12)' },
-  sectionTitle: { color: '#fff', fontSize: 16, fontWeight: '600', marginBottom: 8 },
-  bidRow: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.08)' },
-  bidAmount: { color: '#fff', fontWeight: '600' },
-  bidMeta: { color: 'rgba(255,255,255,0.7)' },
+  label: { color: 'rgba(255, 255, 255, 0.7)' },
+  value: { color: '#ffffff', fontWeight: '600' },
+  section: { margin: 16, padding: 16, borderRadius: 16, backgroundColor: 'rgba(0, 0, 0, 0.35)', borderWidth: 1, borderColor: 'rgba(255, 255, 255, 0.12)' },
+  sectionTitle: { color: '#ffffff', fontSize: 16, fontWeight: '600', marginBottom: 8 },
+  bidRow: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: 'rgba(255, 255, 255, 0.08)' },
+  bidAmount: { color: '#ffffff', fontWeight: '600' },
+  bidMeta: { color: 'rgba(255, 255, 255, 0.7)' },
 })
