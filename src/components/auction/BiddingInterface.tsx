@@ -33,12 +33,17 @@ export function BiddingInterface({ auctionId, currentHighest, disabled = false }
 
   return (
     <View style={styles.container}>
-      <View style={styles.topRow}>
-        <Text style={styles.meta}>Highest: {formatCHF(highestBid ?? currentHighest)}</Text>
-      </View>
-
       <View style={styles.bidRow}>
-        <View style={styles.inputGroup}>
+        {/* Highest Bid Section */}
+        <View style={styles.bidGroup}>
+          <Text style={styles.label}>Highest</Text>
+          <View style={styles.valueDisplay}>
+            <Text style={styles.valueText}>{formatCHF(highestBid ?? currentHighest)}</Text>
+          </View>
+        </View>
+
+        {/* Your Bid Section */}
+        <View style={styles.bidGroup}>
           <Text style={styles.label}>Your bid</Text>
           <TextInput
             value={String(amount)}
@@ -46,11 +51,12 @@ export function BiddingInterface({ auctionId, currentHighest, disabled = false }
             keyboardType="numeric"
             style={[styles.input, disabled && { opacity: 0.6 }]}
             editable={!disabled && !placing}
-            placeholder="Enter amount"
+            placeholder="0"
             placeholderTextColor="rgba(255, 255, 255, 0.4)"
           />
         </View>
 
+        {/* Place Bid Button */}
         <Button onPress={submit} disabled={placing || disabled} style={styles.button}>
           {placing ? 'Placing…' : 'Place Bid'}
         </Button>
@@ -66,21 +72,32 @@ const styles = StyleSheet.create({
   container: {
     marginTop: 8,
   },
-  topRow: {
-    marginBottom: 12,
-  },
   bidRow: {
     flexDirection: 'row',
     alignItems: 'flex-end',
     gap: 12,
   },
-  inputGroup: {
+  bidGroup: {
     flex: 1,
   },
   label: {
     color: 'rgba(255, 255, 255, 0.7)',
     marginBottom: 6,
     fontSize: 14,
+  },
+  valueDisplay: {
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.2)',
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    backgroundColor: 'rgba(0, 0, 0, 0.15)',
+    justifyContent: 'center',
+  },
+  valueText: {
+    color: 'rgba(255, 255, 255, 0.9)',
+    fontSize: 16,
+    fontWeight: '600',
   },
   input: {
     borderWidth: 1,
@@ -93,12 +110,8 @@ const styles = StyleSheet.create({
     fontSize: 16,
   },
   button: {
-    paddingHorizontal: 20,
-  },
-  meta: {
-    color: 'rgba(255, 255, 255, 0.8)',
-    fontSize: 16,
-    fontWeight: '600',
+    paddingHorizontal: 16,
+    flex: 1.2, // Slightly larger than the bid groups
   },
   error: {
     marginTop: 8,
