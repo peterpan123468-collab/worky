@@ -36,5 +36,33 @@
 
 ## Agent Sync & Progress Tracking
 - Follow CLAUDE.md context and specs under `docs/specs/**` to stay aligned.
-- After significant changes: update `docs/revised-implementation-plan.md` checkboxes and phase statuses; adjust CLAUDE.md “Last Updated” and “Next Milestone”.
+- After significant changes, you MUST update:
+  - Master plan: `docs/revised-implementation-plan.md` (mark done items, add scope changes, adjust timelines). The plan is the source of truth.
+  - User flows: `docs/user-types-and-journeys.md` (explicitly document any flow/screen changes and rationale).
+  - CLAUDE.md metadata (“Last Updated”, “Next Milestone”).
 - Keep todos/plans in sync using the workspace’s planning tool; remove obsolete items and add new phase tasks.
+
+## Claude Enforcement Rules (Mandatory)
+
+1) Master Plan Is The Source Of Truth
+- Any change to features, scope, or requirements must be reflected in `docs/revised-implementation-plan.md` in the same PR. If not updated, the prior plan remains authoritative.
+
+2) User Flow Synchronization
+- Any change to flows, screens, or roles must be reflected in `docs/user-types-and-journeys.md` with an explicit note of what changed and why.
+
+3) Card UI Style Standard (Default For All Cards)
+- All new cards must match existing styles; deviate only when explicitly requested.
+- Use shared components from `src/components/ui/card.tsx`: `Card`, `CardHeader`, `CardContent`.
+- Base (default): use Card defaults; prefer `borderRadius: 16` on containers for consistency.
+- Glass theme: always merge `glassCard` from `src/components/themeStyles.ts`.
+  - Import: `import { glassCard } from '../components/themeStyles'`
+  - Example: `<Card style={[styles.card, theme === 'glass' && glassCard]}>`
+  - Current `glassCard`: background `rgba(0,0,0,0.35)`, border `1`, borderColor `rgba(255,255,255,0.12)`.
+- Text on glass: titles/headings `#ffffff`; subtitles/labels `rgba(255,255,255,0.7–0.85)`; values/body `#ffffff`.
+- Status pill (glass): background `rgba(255,255,255,0.12)`, text `#e5e7eb`.
+- Do not create ad‑hoc card containers when Card exists; use Card components and merge `glassCard` when `theme === 'glass'`.
+
+4) Testing Requirements
+- Every new business logic path must include tests (unit/integration as appropriate).
+- Every new UI component must include an E2E test in `e2e/` covering the primary happy path.
+- Updating flows/screens requires updating or adding corresponding E2E coverage.

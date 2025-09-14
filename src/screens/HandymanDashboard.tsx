@@ -1,11 +1,10 @@
 import React from 'react'
 import { View, Text, ScrollView, TouchableOpacity, StyleSheet } from 'react-native'
+import { SafeAreaView } from 'react-native-safe-area-context'
 import { Card, CardContent, CardHeader } from '../components/ui/card'
 import { Button } from '../components/ui/button'
 import { useAuth } from '../contexts/AuthContext'
 import { Background } from '../components/Background'
-import { glassCard } from '../components/themeStyles'
-import { useTheme } from '../contexts/ThemeContext'
 import { AuctionList } from '../components/auction/AuctionList'
 import { useHandymanDashboard } from '../hooks/useHandymanDashboard'
 import { formatCHF } from '../utils/currency'
@@ -16,23 +15,28 @@ import { RootStackParamList } from '../navigation/AppNavigator'
 type Nav = StackNavigationProp<RootStackParamList>
 export function HandymanDashboard() {
   const { logout, user } = useAuth()
-  const { theme } = useTheme()
   const navigation = useNavigation<Nav>()
   const { stats, recentBids } = useHandymanDashboard(user?.id)
   return (
     <Background style={styles.background}>
-      <ScrollView style={styles.scrollView}>
-        <View style={styles.container}>
-          {/* Header */}
-          <View style={styles.header}>
-            <View style={styles.headerText}>
-              <Text style={styles.welcomeText}>Welcome back!</Text>
-              <Text style={styles.subtitleText}>Manage your services and earnings</Text>
-            </View>
+      <SafeAreaView style={styles.safeArea} edges={['top']}>
+        {/* Navigation Header */}
+        <View style={styles.navHeader}>
+          <View style={styles.navHeaderContent}>
+            <Text style={styles.pageTitle}>Dashboard</Text>
             <TouchableOpacity onPress={logout} style={styles.logoutButton}>
               <Text style={styles.logoutButtonText}>Logout</Text>
             </TouchableOpacity>
           </View>
+        </View>
+
+        <ScrollView style={styles.scrollView}>
+          <View style={styles.container}>
+            {/* Welcome Section */}
+            <View style={styles.welcomeSection}>
+              <Text style={styles.welcomeText}>Welcome back!</Text>
+              <Text style={styles.subtitleText}>Manage your services and earnings</Text>
+            </View>
 
           {/* Stats Cards */}
           <View style={styles.statsContainer}>
@@ -47,7 +51,7 @@ export function HandymanDashboard() {
           </View>
 
           {/* Quick Actions */}
-          <View style={[styles.card, theme === 'glass' && glassCard]}>
+          <View style={styles.card}>
             <Text style={styles.cardTitle}>Quick Actions</Text>
             <View style={styles.cardContent}>
               <TouchableOpacity style={styles.primaryButton}>
@@ -63,7 +67,7 @@ export function HandymanDashboard() {
           </View>
 
           {/* Recent Activity */}
-          <View style={[styles.card, theme === 'glass' && glassCard]}>
+          <View style={styles.card}>
             <Text style={styles.cardTitle}>Recent Bids</Text>
             <View style={styles.cardContent}>
               {recentBids.length === 0 ? (
@@ -81,7 +85,7 @@ export function HandymanDashboard() {
           </View>
 
           {/* Active Auctions */}
-          <View style={[styles.card, theme === 'glass' && glassCard]}>
+          <View style={styles.card}>
             <View style={styles.cardHeaderRow}>
               <Text style={styles.cardTitle}>Your Active Auctions</Text>
               <TouchableOpacity onPress={() => navigation.navigate('BrowseAuctions')}>
@@ -91,7 +95,8 @@ export function HandymanDashboard() {
             <AuctionList filters={{ status: 'active', handymanId: user?.id }} embedded limit={3} emptyText="No active auctions" />
           </View>
         </View>
-      </ScrollView>
+        </ScrollView>
+      </SafeAreaView>
     </Background>
   )
 }
@@ -102,22 +107,37 @@ const styles = StyleSheet.create({
     width: '100%',
     height: '100%',
   },
+  safeArea: {
+    flex: 1,
+  },
+  navHeader: {
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255, 255, 255, 0.1)',
+    backgroundColor: 'rgba(0, 0, 0, 0.2)',
+  },
+  navHeaderContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  pageTitle: {
+    fontSize: 20,
+    fontWeight: '600',
+    color: '#ffffff',
+  },
   scrollView: {
     flex: 1,
   },
   container: {
     flex: 1,
-    paddingHorizontal: 24,
-    paddingVertical: 48,
+    paddingHorizontal: 16,
+    paddingTop: 24,
+    paddingBottom: 32,
   },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+  welcomeSection: {
     marginBottom: 32,
-  },
-  headerText: {
-    flex: 1,
   },
   welcomeText: {
     fontSize: 28,
@@ -150,7 +170,7 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: 'rgba(0, 0, 0, 0.4)',
     borderRadius: 16,
-    padding: 16,
+    padding: 12,
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.1)',
     alignItems: 'center',
@@ -168,7 +188,7 @@ const styles = StyleSheet.create({
   card: {
     backgroundColor: 'rgba(0, 0, 0, 0.4)',
     borderRadius: 16,
-    padding: 20,
+    padding: 12,
     marginBottom: 20,
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.1)',

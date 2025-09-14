@@ -27,8 +27,10 @@ export function AuctionList({ filters = { status: 'active' }, embedded = false, 
     return <Text style={{ padding: 16, color: '#999' }}>{emptyText}</Text>
   }
 
+  const containerStyle = { paddingHorizontal: embedded ? 0 : 16, paddingVertical: embedded ? 0 : 8 }
+
   return (
-    <View style={{ paddingHorizontal: 16, paddingVertical: 8 }}>
+    <View style={containerStyle}>
       <FlatList
         data={data}
         keyExtractor={(a) => a.id}

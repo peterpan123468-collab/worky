@@ -63,7 +63,20 @@ export function AppNavigator() {
             <Stack.Screen name="HandymanDashboard" component={HandymanDashboard} />
             <Stack.Screen name="CustomerDashboard" component={CustomerDashboard} />
             <Stack.Screen name="CreateAuction" component={CreateAuction} options={{ headerShown: true, title: 'Create Auction' }} />
-            <Stack.Screen name="BrowseAuctions" component={BrowseAuctions} options={{ headerShown: true, title: 'Auctions' }} />
+            <Stack.Screen
+              name="BrowseAuctions"
+              component={BrowseAuctions}
+              options={{
+                headerShown: true,
+                title: 'Auctions',
+                headerTransparent: true,
+                headerStyle: { backgroundColor: 'transparent' },
+                headerTitleStyle: { color: '#ffffff' },
+                headerTintColor: '#ffffff',
+                headerShadowVisible: false,
+                headerBackTitleVisible: false,
+              }}
+            />
             <Stack.Screen name="AuctionDetail" component={AuctionDetail} options={{ headerShown: true, title: 'Auction' }} />
           </>
         )}

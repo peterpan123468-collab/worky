@@ -67,26 +67,23 @@ notifications           # Comprehensive notification system
 - `close_expired_auctions()`: Processes auction endings and creates bookings
 - `handle_new_user()`: User registration with role-based setup
 
-## Current Implementation Phase
+## Implementation Tracking
 
-### Active Development: Phase 3 - Core Auction System
-**Duration**: 4-5 days (currently in progress)
+**CRITICAL**: The master implementation plan with ALL step-by-step tasks is located in:
+- **Master Plan**: `/docs/revised-implementation-plan.md` - This is THE SOURCE OF TRUTH for all implementation steps
 
-**Critical Deliverables**:
-1. **Auction Creation Flow** (Handyman)
-   - Multi-parameter auction setup (starting price, duration, reserve price)
-   - Time slot selection and conflict checking
-   - Swiss timezone and CHF currency handling
+**MANDATORY WORKFLOW**:
+1. **Implementation**: Complete a component/feature and test it thoroughly
+2. **Verification**: Ensure the implementation works correctly
+3. **Documentation**: ONLY AFTER successful testing, mark the step as ✅ COMPLETED in `/docs/revised-implementation-plan.md`
 
-2. **Real-time Bidding System** (Customer)
-   - Supabase Realtime integration for live bid updates
-   - `place_auction_bid()` function integration
-   - Race condition handling and error management
+**IMPORTANT**: All implementation status, progress tracking, and phase updates are maintained in separate documents to keep this global rules file immutable:
 
-3. **Auction Management**
-   - Automatic auction closing and booking creation
-   - Status tracking (scheduled → active → completed)
-   - Winner determination and notification system
+- **Master Plan**: `/docs/revised-implementation-plan.md` - Complete step-by-step implementation tasks (MUST be updated after completion)
+- **Current Status**: See `/docs/implementation-status-update.md` for detailed progress
+- **Progress Updates**: These documents are updated as development progresses
+
+This file (CLAUDE.md) contains only global project rules and context that remain constant throughout development.
 
 ### Key Implementation Requirements
 
@@ -183,14 +180,24 @@ src/
 - **Timezone Issues**: Consistent UTC storage with Swiss display
 - **User Experience**: Clear auction rules and bidding feedback
 
-## Documentation References
+## Documentation Structure & Rules
 
-### Core Documents
+### **IMMUTABLE GLOBAL RULES** (This File)
+**CLAUDE.md** - Project context, technical architecture, and development guidelines
+- **Only modified by user explicit request**
+- Contains unchanging project rules and technical specifications
+- References implementation tracking documents but doesn't contain status updates
+
+### **IMPLEMENTATION TRACKING DOCUMENTS** (Updated by Claude)
+- **`/docs/implementation-status-update.md`** - Current detailed status, completed features, known issues
+- **`/docs/revised-implementation-plan.md`** - Phase-by-phase implementation plan with timeline
+- **Progress updates occur in these documents only**
+
+### Core Reference Documents
 1. `/docs/user-types-and-journeys.md` - Complete user workflows and feature matrix
-2. `/docs/implementation-phases.md` - 6-phase development roadmap
-3. `/docs/specs/architecture-overview.md` - Technical architecture decisions
-4. `/docs/specs/auction-system-spec.md` - Detailed auction implementation
-5. `/docs/specs/development-guidelines.md` - Coding standards and patterns
+2. `/docs/specs/architecture-overview.md` - Technical architecture decisions
+3. `/docs/specs/auction-system-spec.md` - Detailed auction implementation
+4. `/docs/specs/development-guidelines.md` - Coding standards and patterns
 
 ### Database Schema
 - Primary reference: `/database/schema.sql`
@@ -263,10 +270,13 @@ This context document ensures Claude Code maintains focus on the auction system 
 These rules MUST be followed by agents and contributors for every change. Non‑compliant changes are considered incomplete.
 
 1) Master Plan Is The Source Of Truth
+- The `/docs/revised-implementation-plan.md` file contains ALL implementation steps and is THE authoritative source
+- **MANDATORY**: After completing and testing ANY step, mark it as ✅ COMPLETED in the master plan
 - After ANY change (feature, scope, behavior, or requirement), update the master plan:
   - File: `/docs/revised-implementation-plan.md`
   - Reflect newly completed items, newly added scope, timeline shifts, and rationale.
-- If requirements change or are clarified, the plan MUST be amended in the same PR. Otherwise, the prior plan remains authoritative and changes are not respected.
+- If requirements change or are clarified, the plan MUST be amended. Otherwise, the prior plan remains authoritative and changes are not respected.
+- **DO NOT mark items complete until they are implemented, tested, and verified to work correctly**
 
 2) User Flow Synchronization
 - Any update to flows, screens, or roles MUST be reflected in:
