@@ -13,9 +13,6 @@ export function CreateAuction() {
     <Background style={styles.background}>
       <SafeAreaView style={styles.safeArea} edges={['top']}>
         <ScrollView contentContainerStyle={styles.container}>
-          <View style={styles.header}>
-            <Text style={styles.headerText}>Create New Auction</Text>
-          </View>
           <AuctionCreationForm onCreated={(id) => navigation.navigate('AuctionDetail', { id })} />
         </ScrollView>
       </SafeAreaView>
