@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react'
 import { View, Text, StyleSheet, ScrollView, ActivityIndicator, Alert } from 'react-native'
+import { SafeAreaView } from 'react-native-safe-area-context'
 import { RouteProp, useRoute } from '@react-navigation/native'
 import { RootStackParamList } from '../navigation/AppNavigator'
 import { Background } from '../components/Background'
@@ -56,14 +57,18 @@ export function AuctionDetail() {
   if (loading) {
     return (
       <Background style={styles.background}>
-        <View style={styles.center}><ActivityIndicator size="large" color="#fff" /></View>
+        <SafeAreaView style={styles.safeArea} edges={['top']}>
+          <View style={styles.center}><ActivityIndicator size="large" color="#fff" /></View>
+        </SafeAreaView>
       </Background>
     )
   }
   if (error || !auction) {
     return (
       <Background style={styles.background}>
-        <View style={styles.center}><Text style={{ color: '#fff' }}>{error || 'Not found'}</Text></View>
+        <SafeAreaView style={styles.safeArea} edges={['top']}>
+          <View style={styles.center}><Text style={{ color: '#fff' }}>{error || 'Not found'}</Text></View>
+        </SafeAreaView>
       </Background>
     )
   }
@@ -72,7 +77,8 @@ export function AuctionDetail() {
 
   return (
     <Background style={styles.background}>
-      <ScrollView contentContainerStyle={styles.container}>
+      <SafeAreaView style={styles.safeArea} edges={['top']}>
+        <ScrollView contentContainerStyle={styles.container}>
         <View style={styles.header}>
           <Text style={styles.title}>{auction.title}</Text>
           <Text style={styles.subtitle}>{auction.service_type} · {auction.region}</Text>
@@ -109,14 +115,16 @@ export function AuctionDetail() {
             ))
           )}
         </View>
-      </ScrollView>
+        </ScrollView>
+      </SafeAreaView>
     </Background>
   )
 }
 
 const styles = StyleSheet.create({
   background: { flex: 1 },
-  container: { paddingVertical: 16 },
+  safeArea: { flex: 1 },
+  container: { paddingTop: 80, paddingBottom: 16 }, // Space for React Navigation transparent header
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   header: { margin: 16, padding: 16, borderRadius: 16, backgroundColor: 'rgba(0, 0, 0, 0.35)', borderWidth: 1, borderColor: 'rgba(255, 255, 255, 0.12)' },
   title: { color: '#ffffff', fontSize: 20, fontWeight: '700' },

@@ -77,7 +77,20 @@ export function AppNavigator() {
                 headerBackTitleVisible: false,
               }}
             />
-            <Stack.Screen name="AuctionDetail" component={AuctionDetail} options={{ headerShown: true, title: 'Auction' }} />
+            <Stack.Screen
+              name="AuctionDetail"
+              component={AuctionDetail}
+              options={{
+                headerShown: true,
+                title: 'Auction',
+                headerTransparent: true,
+                headerStyle: { backgroundColor: 'transparent' },
+                headerTitleStyle: { color: '#ffffff' },
+                headerTintColor: '#ffffff',
+                headerShadowVisible: false,
+                headerBackTitleVisible: false,
+              }}
+            />
           </>
         )}
         <Stack.Screen
