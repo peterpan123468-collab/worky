@@ -25,8 +25,8 @@ export function AuthScreen() {
   const [isLoading, setIsLoading] = useState(false)
 
   // Basic form fields
-  const [email, setEmail] = useState('atemndobs@gmail.com')
-  const [password, setPassword] = useState('Atem1234')
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
 
   // Signup additional fields
   const [businessName, setBusinessName] = useState('')
@@ -39,6 +39,14 @@ export function AuthScreen() {
   useEffect(() => {
     clearError()
   }, [activeTab, clearError])
+
+  // TODO: Remove test prefill before production
+  useEffect(() => {
+    if (activeTab === 'signin') {
+      setEmail('atemndobs@gmail.com')
+      setPassword('Atem1234')
+    }
+  }, [activeTab])
 
   const handleSubmit = async () => {
     setIsLoading(true)
