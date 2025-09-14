@@ -12,7 +12,6 @@ import Ionicons from '@expo/vector-icons/Ionicons'
 import { RootStackParamList } from '../navigation/AppNavigator'
 import { AuctionList } from '../components/auction/AuctionList'
 import { useCustomerDashboard } from '../hooks/useCustomerDashboard'
-import { useAuth } from '../contexts/AuthContext'
 import { formatSwissDateTime } from '../utils/timezone'
 import { formatCHF } from '../utils/currency'
 
