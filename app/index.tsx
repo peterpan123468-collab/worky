@@ -6,7 +6,7 @@ import React, { useEffect } from 'react';
 import { ActivityIndicator, StyleSheet } from 'react-native';
 
 export default function Index() {
-  const { session, userType, hasSelectedRegion, hasCompletedWorkSetup, isLoading } = useAuth();
+  const { session, userType, hasSelectedRegion, hasCompletedWorkSetup, isLoading, error } = useAuth();
 
   useEffect(() => {
     console.log('🔍 Auth State Check:', { 
@@ -14,11 +14,19 @@ export default function Index() {
       userType, 
       hasSelectedRegion, 
       hasCompletedWorkSetup, 
-      isLoading 
+      isLoading,
+      error
     });
     
     if (isLoading) {
       console.log('⏳ Still loading auth state...');
+      return;
+    }
+
+    // If there's a network error, redirect to welcome to allow offline usage
+    if (error && (error.includes('Network') || error.includes('connect'))) {
+      console.log('🌐 Network error detected - redirecting to welcome for offline mode');
+      router.replace('/(auth)/welcome');
       return;
     }
 
@@ -49,13 +57,16 @@ export default function Index() {
     // All setup complete - go to main app
     console.log('✅ Setup complete - redirecting to main app');
     router.replace('/(tabs)');
-  }, [session, userType, hasSelectedRegion, hasCompletedWorkSetup, isLoading]);
+  }, [session, userType, hasSelectedRegion, hasCompletedWorkSetup, isLoading, error]);
 
   if (isLoading) {
     return (
       <ThemedView style={styles.container}>
         <ActivityIndicator size="large" />
         <ThemedText style={styles.loadingText}>Loading Worky...</ThemedText>
+        {error && (
+          <ThemedText style={styles.errorText}>{error}</ThemedText>
+        )}
       </ThemedView>
     );
   }
@@ -77,5 +88,11 @@ const styles = StyleSheet.create({
   loadingText: {
     marginTop: 16,
     fontSize: 16,
+  },
+  errorText: {
+    marginTop: 16,
+    fontSize: 14,
+    color: 'red',
+    textAlign: 'center',
   },
 });

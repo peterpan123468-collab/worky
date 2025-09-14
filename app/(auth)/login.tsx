@@ -12,7 +12,7 @@ export default function LoginScreen() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const { signIn, error, clearError } = useAuth();
+  const { signIn, error, clearError, isOfflineMode } = useAuth();
   const colorScheme = useColorScheme();
 
   const handleEmailChange = (text: string) => {
@@ -65,6 +65,17 @@ export default function LoginScreen() {
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
       <ThemedView style={styles.content}>
+        {isOfflineMode && (
+          <View style={styles.offlineMode}>
+            <ThemedText style={styles.offlineModeText}>
+              🔌 Offline Mode - Demo Authentication
+            </ThemedText>
+            <ThemedText style={styles.offlineModeSubtext}>
+              Use any email and password (6+ characters) to test the app
+            </ThemedText>
+          </View>
+        )}
+        
         <ErrorMessage error={error} />
         
         <View style={styles.form}>
@@ -223,5 +234,25 @@ const styles = StyleSheet.create({
   emergencyLink: {
     fontSize: 14,
     fontWeight: '600',
+  },
+  offlineMode: {
+    backgroundColor: 'rgba(59, 130, 246, 0.1)',
+    borderRadius: 8,
+    padding: 12,
+    marginBottom: 20,
+    borderLeftWidth: 4,
+    borderLeftColor: '#3B82F6',
+  },
+  offlineModeText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#3B82F6',
+    textAlign: 'center',
+  },
+  offlineModeSubtext: {
+    fontSize: 12,
+    color: '#6B7280',
+    textAlign: 'center',
+    marginTop: 4,
   },
 });

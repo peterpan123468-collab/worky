@@ -14,7 +14,7 @@ export default function RegisterScreen() {
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const { signUp, error, clearError } = useAuth();
+  const { signUp, error, clearError, isOfflineMode } = useAuth();
   const colorScheme = useColorScheme();
 
   const userType = type || 'customer';
@@ -48,11 +48,20 @@ export default function RegisterScreen() {
       // Error will be handled by AuthContext and displayed via ErrorMessage
       console.log('Registration error:', error.message);
     } else {
-      Alert.alert(
-        'Registration Successful',
-        'Please check your email to verify your account.',
-        [{ text: 'OK', onPress: () => router.push('/(auth)/login') }]
-      );
+      if (isOfflineMode) {
+        // In offline mode, navigate directly to region selection
+        Alert.alert(
+          'Registration Successful',
+          'Welcome! Let\'s set up your profile.',
+          [{ text: 'Continue', onPress: () => router.replace('/') }]
+        );
+      } else {
+        Alert.alert(
+          'Registration Successful',
+          'Please check your email to verify your account.',
+          [{ text: 'OK', onPress: () => router.push('/(auth)/login') }]
+        );
+      }
     }
   };
 
@@ -74,6 +83,17 @@ export default function RegisterScreen() {
               }
             </ThemedText>
           </View>
+
+          {isOfflineMode && (
+            <View style={styles.offlineMode}>
+              <ThemedText style={styles.offlineModeText}>
+                🔌 Offline Mode - Demo Registration
+              </ThemedText>
+              <ThemedText style={styles.offlineModeSubtext}>
+                Use any email and password (6+ characters) to test the app
+              </ThemedText>
+            </View>
+          )}
 
           <ErrorMessage error={error} />
 
@@ -244,5 +264,25 @@ const styles = StyleSheet.create({
   footerLink: {
     fontSize: 14,
     fontWeight: '600',
+  },
+  offlineMode: {
+    backgroundColor: 'rgba(59, 130, 246, 0.1)',
+    borderRadius: 8,
+    padding: 12,
+    marginBottom: 20,
+    borderLeftWidth: 4,
+    borderLeftColor: '#3B82F6',
+  },
+  offlineModeText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#3B82F6',
+    textAlign: 'center',
+  },
+  offlineModeSubtext: {
+    fontSize: 12,
+    color: '#6B7280',
+    textAlign: 'center',
+    marginTop: 4,
   },
 });

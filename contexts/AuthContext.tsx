@@ -9,6 +9,7 @@ interface AuthContextType {
   hasSelectedRegion: boolean;
   hasCompletedWorkSetup: boolean;
   isLoading: boolean;
+  isOfflineMode: boolean;
   error: string | null;
   clearError: () => void;
   refreshUserData: () => Promise<void>;
@@ -24,6 +25,7 @@ const AuthContext = createContext<AuthContextType>({
   hasSelectedRegion: false,
   hasCompletedWorkSetup: false,
   isLoading: true,
+  isOfflineMode: false,
   error: null,
   clearError: () => {},
   refreshUserData: async () => {},
@@ -51,6 +53,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const [hasSelectedRegion, setHasSelectedRegion] = useState(false);
   const [hasCompletedWorkSetup, setHasCompletedWorkSetup] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [isOfflineMode, setIsOfflineMode] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const clearError = () => {
@@ -58,6 +61,17 @@ export function AuthProvider({ children }: AuthProviderProps) {
   };
 
   useEffect(() => {
+    // Check if we're in offline mode
+    const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL;
+    const isOffline = !supabaseUrl || supabaseUrl.includes('your-project') || supabaseUrl.includes('placeholder');
+    setIsOfflineMode(isOffline);
+    
+    if (isOffline) {
+      console.log('🔌 Running in offline mode - skipping Supabase initialization');
+      setIsLoading(false);
+      return;
+    }
+
     // Get initial session
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
@@ -99,10 +113,26 @@ export function AuthProvider({ children }: AuthProviderProps) {
     const timeoutId = setTimeout(() => {
       console.log('⏰ fetchUserType timeout - setting loading to false');
       setIsLoading(false);
-      setError('Loading timeout. Please refresh the page.');
-    }, 10000); // 10 second timeout
+      setError('Network timeout. Please check your connection and try again.');
+    }, 5000); // Reduced to 5 second timeout
     
     try {
+      // Test connection first with a simple query
+      console.log('🔗 Testing database connection...');
+      const connectionTest = await Promise.race([
+        supabase.from('users').select('count').limit(1),
+        new Promise((_, reject) => 
+          setTimeout(() => reject(new Error('Connection timeout')), 3000)
+        )
+      ]) as any;
+      
+      if (connectionTest.error) {
+        console.error('🚫 Database connection failed:', connectionTest.error);
+        throw new Error(`Database connection failed: ${connectionTest.error.message}`);
+      }
+      
+      console.log('✅ Database connection successful, fetching user data...');
+      
       const { data, error } = await supabase
         .from('users')
         .select('user_type, profile_data')
@@ -114,42 +144,21 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
       if (error) {
         console.error('Error fetching user type:', error);
+        // Handle network-related errors
+        if (error.message.includes('fetch') || error.message.includes('network') || error.message.includes('timeout')) {
+          console.error('🌐 Network error detected');
+          setError('Network error. Please check your internet connection and try again.');
+          clearTimeout(timeoutId);
+          setIsLoading(false);
+          return;
+        }
+        
         // If user record doesn't exist, it might be a new signup or missing record
         if (error.code === 'PGRST116') {
-          console.log('🔍 User record not found, attempting to create one...');
-          
-          // Try to get current user email for record creation
-          const { data: { user } } = await supabase.auth.getUser();
-          if (user?.email) {
-            console.log('📧 Creating user record with email:', user.email);
-            // Create a default user record (customer type)
-            const { data: createdUser, error: createError } = await supabase
-              .from('users')
-              .insert({
-                id: userId,
-                email: user.email,
-                user_type: 'customer' // Default to customer
-              })
-              .select()
-              .single();
-            
-            if (!createError && createdUser) {
-              console.log('✅ Successfully created user record:', createdUser);
-              setUserType(createdUser.user_type);
-              setHasSelectedRegion(false); // New user needs to select region
-              clearTimeout(timeoutId);
-              setIsLoading(false);
-              return;
-            } else {
-              console.error('❌ Failed to create user record:', createError);
-            }
-          }
-          
-          // If creation failed, set error and stop loading immediately
-          console.error('❌ Could not create user record, stopping loading');
+          console.log('🔍 User record not found, will redirect to setup');
           setUserType(null);
           setHasSelectedRegion(false);
-          setError('Account setup incomplete. Please try signing up again.');
+          setHasCompletedWorkSetup(false);
           clearTimeout(timeoutId);
           setIsLoading(false);
           return;
@@ -158,7 +167,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
         // For other errors, set defaults and stop loading
         setUserType(null);
         setHasSelectedRegion(false);
-        setError('Failed to load user data. Please try again.');
+        setError(`Database error: ${error.message}`);
       } else {
         console.log('✅ User type retrieved:', data?.user_type);
         console.log('📊 Profile data:', data?.profile_data);
@@ -188,11 +197,22 @@ export function AuthProvider({ children }: AuthProviderProps) {
         setHasCompletedWorkSetup(hasWorkSetupValue);
         clearError(); // Clear any previous errors
       }
-    } catch (error) {
-      console.error('💥 Unexpected error fetching user type:', error);
+    } catch (error: any) {
+      console.error('💥 Network/connection error:', error);
+      
+      // Handle different types of network errors
+      if (error.message.includes('fetch failed') || 
+          error.message.includes('Failed to fetch') ||
+          error.message.includes('Network request failed') ||
+          error.message.includes('Connection timeout')) {
+        setError('Cannot connect to server. Please check your internet connection and try again.');
+      } else {
+        setError(`Connection error: ${error.message}`);
+      }
+      
       setUserType(null);
       setHasSelectedRegion(false);
-      setError('Unexpected error loading user data.');
+      setHasCompletedWorkSetup(false);
     } finally {
       console.log('🏁 Setting loading to false');
       clearTimeout(timeoutId);
@@ -216,6 +236,41 @@ export function AuthProvider({ children }: AuthProviderProps) {
     setIsLoading(true);
     setError(null);
     
+    // Handle offline mode
+    if (isOfflineMode) {
+      console.log('🔌 Offline mode: Simulating authentication');
+      
+      // Simple offline authentication simulation
+      if (email && password.length >= 6) {
+        const mockUser = {
+          id: 'offline-user-' + Date.now(),
+          email: email,
+          created_at: new Date().toISOString(),
+          aud: 'authenticated',
+          role: 'authenticated'
+        };
+        
+        const mockSession = {
+          access_token: 'offline-token',
+          refresh_token: 'offline-refresh',
+          expires_in: 3600,
+          token_type: 'bearer',
+          user: mockUser
+        };
+        
+        setSession(mockSession as any);
+        setUser(mockUser as any);
+        setIsLoading(false);
+        
+        console.log('✅ Offline authentication successful');
+        return { error: null };
+      } else {
+        setError('Invalid email or password (password must be at least 6 characters)');
+        setIsLoading(false);
+        return { error: { message: 'Invalid credentials' } };
+      }
+    }
+    
     console.log('🔗 AuthContext: Calling supabase.auth.signInWithPassword');
     const { error } = await supabase.auth.signInWithPassword({
       email,
@@ -238,6 +293,41 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const signUp = async (email: string, password: string, userType: 'handyman' | 'customer') => {
     setIsLoading(true);
     setError(null);
+    
+    // Handle offline mode
+    if (isOfflineMode) {
+      console.log('🔌 Offline mode: Simulating registration');
+      
+      if (email && password.length >= 6) {
+        const mockUser = {
+          id: 'offline-user-' + Date.now(),
+          email: email,
+          created_at: new Date().toISOString(),
+          aud: 'authenticated',
+          role: 'authenticated'
+        };
+        
+        const mockSession = {
+          access_token: 'offline-token',
+          refresh_token: 'offline-refresh', 
+          expires_in: 3600,
+          token_type: 'bearer',
+          user: mockUser
+        };
+        
+        setSession(mockSession as any);
+        setUser(mockUser as any);
+        setUserType(userType);
+        setIsLoading(false);
+        
+        console.log('✅ Offline registration successful');
+        return { error: null };
+      } else {
+        setError('Invalid email or password (password must be at least 6 characters)');
+        setIsLoading(false);
+        return { error: { message: 'Invalid credentials' } };
+      }
+    }
     
     const { data, error } = await supabase.auth.signUp({
       email,
@@ -302,6 +392,16 @@ export function AuthProvider({ children }: AuthProviderProps) {
   };
 
   const signOut = async () => {
+    if (isOfflineMode) {
+      console.log('🔌 Offline mode: Simulating sign out');
+      setSession(null);
+      setUser(null);
+      setUserType(null);
+      setHasSelectedRegion(false);
+      setHasCompletedWorkSetup(false);
+      return;
+    }
+    
     const { error } = await supabase.auth.signOut();
     if (error) {
       console.error('Error signing out:', error);
@@ -315,6 +415,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
     hasSelectedRegion,
     hasCompletedWorkSetup,
     isLoading,
+    isOfflineMode,
     error,
     clearError,
     refreshUserData,
