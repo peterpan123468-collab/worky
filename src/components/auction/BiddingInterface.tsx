@@ -106,7 +106,7 @@ const styles = StyleSheet.create({
   bidRow: {
     flexDirection: 'row',
     alignItems: 'flex-end',
-    gap: 12,
+    gap: 6,
   },
   bidGroup: {
     flex: 1,
@@ -122,7 +122,8 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     paddingHorizontal: 12,
     paddingVertical: 10,
-    backgroundColor: 'rgba(0, 0, 0, 0.15)',
+    paddingRight: 30, // Same padding as input to match width exactly
+    backgroundColor: 'rgba(0, 0, 0, 0.25)', // Same background as input
     justifyContent: 'center',
   },
   valueText: {
@@ -139,25 +140,26 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     paddingHorizontal: 12,
     paddingVertical: 10,
-    paddingRight: 50, // Space for increment buttons
+    paddingRight: 30, // Even less space for increment buttons - more room for text
     backgroundColor: 'rgba(0, 0, 0, 0.25)',
     color: '#ffffff',
     fontSize: 16,
   },
   incrementButtons: {
     position: 'absolute',
-    right: 2,
-    top: 2,
-    bottom: 2,
+    right: 1,
+    top: 1,
+    bottom: 1,
     flexDirection: 'column',
+    width: 20, // Much smaller width
   },
   incrementButton: {
     flex: 1,
-    width: 28,
+    width: 18, // Much smaller width
     backgroundColor: 'rgba(255, 255, 255, 0.1)',
     justifyContent: 'center',
     alignItems: 'center',
-    borderRadius: 6,
+    borderRadius: 3, // Smaller border radius
     marginVertical: 1,
   },
   incrementText: {
@@ -166,8 +168,9 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   button: {
-    paddingHorizontal: 16,
-    flex: 1.2, // Slightly larger than the bid groups
+    paddingHorizontal: 6,
+    flex: 0.5, // Much smaller to give more space to input fields
+    minWidth: 50, // Smaller minimum width
   },
   error: {
     marginTop: 8,
