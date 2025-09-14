@@ -13,6 +13,7 @@ import { supabase } from '../lib/supabase'
 import { useBidding } from '../hooks/useBidding'
 import { formatSwissDateTime } from '../utils/timezone'
 import { useAuth } from '../contexts/AuthContext'
+import { Ionicons } from '@expo/vector-icons'
 
 type Route = RouteProp<RootStackParamList, 'AuctionDetail'>
 
@@ -130,14 +131,13 @@ export function AuctionDetail() {
               return filteredBids.map((b) => (
                 <View key={b.id} style={styles.bidRow}>
                   <View style={styles.bidLeftSection}>
-                    {/* Placeholder Avatar */}
+                    {/* Person Avatar Icon */}
                     <View style={[styles.avatar, b.bidder_id === user?.id && styles.yourAvatar]}>
-                      <Text style={styles.avatarText}>
-                        {b.bidder_id === user?.id
-                          ? 'Y'
-                          : b.bidder_id.charAt(0).toUpperCase()
-                        }
-                      </Text>
+                      <Ionicons
+                        name="person"
+                        size={18}
+                        color={b.bidder_id === user?.id ? "rgba(0, 255, 0, 0.9)" : "rgba(255, 255, 255, 0.8)"}
+                      />
                     </View>
 
                     <View style={styles.bidInfo}>
@@ -188,11 +188,6 @@ const styles = StyleSheet.create({
   yourAvatar: {
     backgroundColor: 'rgba(0, 255, 0, 0.2)',
     borderColor: 'rgba(0, 255, 0, 0.5)',
-  },
-  avatarText: {
-    color: '#ffffff',
-    fontSize: 14,
-    fontWeight: '600',
   },
   bidInfo: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   bidAmount: { color: '#ffffff', fontWeight: '600' },
