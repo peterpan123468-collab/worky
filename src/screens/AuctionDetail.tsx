@@ -97,10 +97,21 @@ export function AuctionDetail() {
           </View>
         )}
 
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Place a Bid</Text>
-          <BiddingInterface auctionId={auction.id} currentHighest={current} disabled={auction.status !== 'active'} />
-        </View>
+        {/* Show bidding interface only if user is not the handyman who created this auction */}
+        {user?.id !== auction.handyman_id ? (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Place a Bid</Text>
+            <BiddingInterface auctionId={auction.id} currentHighest={current} disabled={auction.status !== 'active'} />
+          </View>
+        ) : (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Your Auction</Text>
+            <Text style={styles.ownerInfo}>You created this auction. Customers can place bids to win your services.</Text>
+            {bids.length > 0 && (
+              <Text style={styles.ownerInfo}>Current highest bid: {formatCHF(current)}</Text>
+            )}
+          </View>
+        )}
 
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Recent Bids</Text>
@@ -137,4 +148,5 @@ const styles = StyleSheet.create({
   bidRow: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: 'rgba(255, 255, 255, 0.08)' },
   bidAmount: { color: '#ffffff', fontWeight: '600' },
   bidMeta: { color: 'rgba(255, 255, 255, 0.7)' },
+  ownerInfo: { color: 'rgba(255, 255, 255, 0.8)', fontSize: 16, marginBottom: 8 },
 })
