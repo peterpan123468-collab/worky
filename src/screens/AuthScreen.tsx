@@ -42,14 +42,15 @@ export function AuthScreen() {
 
   // DEV ONLY: Prefill test credentials for Sign in to speed testing
   // TODO: Remove this before production if not desired
-  const TEST_EMAIL = 'atemndobs@gmail.com'
-  const TEST_PASSWORD = 'Atem1234'
+  const DEV_HANDYMAN_EMAIL = 'atemndobs@gmail.com'
+  const DEV_CUSTOMER_EMAIL = 'atemndobs@yahoo.com'
+  const DEV_PASSWORD = 'Atem1234'
   useEffect(() => {
     if (__DEV__ && activeTab === 'signin') {
-      setEmail(TEST_EMAIL)
-      setPassword(TEST_PASSWORD)
+      setEmail(userType === 'handyman' ? DEV_HANDYMAN_EMAIL : DEV_CUSTOMER_EMAIL)
+      setPassword(DEV_PASSWORD)
     }
-  }, [activeTab])
+  }, [activeTab, userType])
 
   const handleSubmit = async () => {
     setIsLoading(true)
@@ -198,7 +199,7 @@ export function AuthScreen() {
                     style={styles.input}
                     value={email}
                     onChangeText={setEmail}
-                    placeholder="atemndobs@gmail.com"
+                    placeholder={userType === 'handyman' ? 'atemndobs@gmail.com' : 'atemndobs@yahoo.com'}
                     placeholderTextColor="rgba(255, 255, 255, 0.4)"
                     keyboardType="email-address"
                     autoCapitalize="none"
@@ -211,7 +212,7 @@ export function AuthScreen() {
                     style={styles.input}
                     value={password}
                     onChangeText={setPassword}
-                    placeholder="Atem1234"
+                    placeholder={DEV_PASSWORD}
                     placeholderTextColor="rgba(255, 255, 255, 0.4)"
                     secureTextEntry
                   />
