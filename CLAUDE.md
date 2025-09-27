@@ -71,6 +71,7 @@ notifications           # Comprehensive notification system
 
 **CRITICAL**: The master implementation plan with ALL step-by-step tasks is located in:
 - **Master Plan**: `/docs/revised-implementation-plan.md` - This is THE SOURCE OF TRUTH for all implementation steps
+- **Feature Completion Plan**: /docs/feature-completion-plan.md - Prioritised backlog for flow completion (Phase 7)
 
 **MANDATORY WORKFLOW**:
 1. **Implementation**: Complete a component/feature and test it thoroughly
@@ -86,6 +87,7 @@ notifications           # Comprehensive notification system
 This file (CLAUDE.md) contains only global project rules and context that remain constant throughout development.
 
 ### Key Implementation Requirements
+- Maintain an up-to-date system architecture diagram in docs/specs/architecture-overview.md for every major flow change
 
 #### Real-time Architecture
 - Use Supabase Realtime channels for auction updates
@@ -222,8 +224,8 @@ src/
 
 ---
 
-**Last Updated**: Implementation Phase 3 - Core Auction System COMPLETED with Full Testing
-**Next Milestone**: Phase 5 - Real-time Notifications & Advanced Features
+**Last Updated**: Phase 7 flow completion backlog documented and prioritised
+**Next Milestone**: Phase 7 - Flow Completion & Backlog Burn Down kickoff
 
 This context document ensures Claude Code maintains focus on the auction system implementation while respecting Swiss market requirements and architectural decisions.
 
