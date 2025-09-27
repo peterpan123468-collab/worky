@@ -28,14 +28,14 @@ export default function App() {
 
   return (
     <ThemeProvider>
-      <AuthProvider>
-        <NotificationProvider>
-          <ToastProvider>
+      <ToastProvider>
+        <AuthProvider>
+          <NotificationProvider>
             <AppNavigator />
             <StatusBar style="auto" />
-          </ToastProvider>
-        </NotificationProvider>
-      </AuthProvider>
+          </NotificationProvider>
+        </AuthProvider>
+      </ToastProvider>
     </ThemeProvider>
   )
 }
