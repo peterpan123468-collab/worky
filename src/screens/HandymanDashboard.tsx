@@ -1,5 +1,5 @@
 import React from 'react'
-import { View, Text, ScrollView, TouchableOpacity, StyleSheet } from 'react-native'
+import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Alert } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { Card, CardContent } from '../components/ui/card'
 import { Button } from '../components/ui/button'
@@ -12,26 +12,57 @@ import { NotificationBell } from '../components/NotificationBell'
 import { useHandymanDashboard } from '../hooks/useHandymanDashboard'
 import { useAuctionAnalytics } from '../hooks/useAuctionAnalytics'
 import { formatCHF } from '../utils/currency'
+import { AvailabilityManagerModal } from '../components/availability/AvailabilityManagerModal'
 import { useNavigation } from '@react-navigation/native'
 import { StackNavigationProp } from '@react-navigation/stack'
 import { RootStackParamList } from '../navigation/AppNavigator'
 import { Ionicons } from '@expo/vector-icons'
+import { auctionLifecycleService } from '../services/auction-lifecycle.service'
+import { useTheme } from '../contexts/ThemeContext'
+import { useLanguage } from '../contexts/LanguageContext'
+import { glassCard } from '../components/themeStyles'
+import { t } from '../utils/i18n'
 
 type Nav = StackNavigationProp<RootStackParamList>
 export function HandymanDashboard() {
   const { logout, user } = useAuth()
   const { unreadCount } = useNotifications()
   const navigation = useNavigation<Nav>()
-  const { stats, recentBids } = useHandymanDashboard(user?.id)
+  const { stats, recentBids, refresh } = useHandymanDashboard(user?.id)
   const { stats: auctionStats, loading: auctionLoading } = useAuctionAnalytics(user?.id)
+  const [availabilityVisible, setAvailabilityVisible] = React.useState(false)
+  const { theme } = useTheme()
+  const { language } = useLanguage()
+  const cardSurfaceStyle = theme === 'glass' ? glassCard : undefined
+
+  const handleManualAuctionProcessing = async () => {
+    try {
+      console.log('Manually processing expired auctions...')
+      await auctionLifecycleService.processExpiredAuctions()
+      console.log('Expired auctions processed successfully')
+      // Refresh the analytics
+      refresh()
+    } catch (error) {
+      console.error('Error processing expired auctions:', error)
+    }
+  }
+
   return (
     <Background style={styles.background}>
       <SafeAreaView style={styles.safeArea} edges={['top']}>
+        <AvailabilityManagerModal
+          visible={availabilityVisible}
+          handymanId={user?.id}
+          onClose={() => setAvailabilityVisible(false)}
+        />
         {/* Navigation Header */}
         <View style={styles.navHeader}>
           <View style={styles.navHeaderContent}>
-            <Text style={styles.pageTitle}>Dashboard</Text>
+            <Text style={styles.pageTitle}>{t('nav.settings', language)}</Text>
             <View style={styles.navActions}>
+              <TouchableOpacity onPress={() => navigation.navigate('Settings')} style={styles.settingsButton}>
+                <Ionicons name="settings-outline" size={24} color="#ffffff" />
+              </TouchableOpacity>
               <NotificationBell />
               <TouchableOpacity onPress={logout} style={styles.logoutButton}>
                 <Text style={styles.logoutButtonText}>Logout</Text>
@@ -50,13 +81,13 @@ export function HandymanDashboard() {
 
           {/* Stats Cards */}
           <View style={styles.statsContainer}>
-            <Card style={styles.statCard}>
+            <Card style={[styles.statCard, cardSurfaceStyle]}>
               <CardContent>
                 <Text style={styles.statNumber}>{stats.activeBookings}</Text>
                 <Text style={styles.statLabel}>Active Bookings</Text>
               </CardContent>
             </Card>
-            <Card style={styles.statCard}>
+            <Card style={[styles.statCard, cardSurfaceStyle]}>
               <CardContent>
                 <Text style={styles.statNumber}>{formatCHF(stats.monthRevenue)}</Text>
                 <Text style={styles.statLabel}>This Month</Text>
@@ -70,28 +101,41 @@ export function HandymanDashboard() {
           )}
 
           {/* Quick Actions */}
-          <Card>
+          <Card style={cardSurfaceStyle}>
             <CardContent>
               <Text style={styles.cardTitle}>Quick Actions</Text>
               <View style={styles.cardContent}>
-                <TouchableOpacity testID="set-availability-button" style={styles.primaryButton}>
+                <TouchableOpacity testID="set-availability-button" style={styles.primaryButton} onPress={() => setAvailabilityVisible(true)}>
                   <Text style={styles.primaryButtonText}>Set Availability</Text>
                 </TouchableOpacity>
                 <TouchableOpacity testID="create-auction-button" style={styles.secondaryButton} onPress={() => navigation.navigate('CreateAuction')}>
                   <Text style={styles.secondaryButtonText}>Create Auction</Text>
                 </TouchableOpacity>
-                <TouchableOpacity testID="view-calendar-button" style={styles.secondaryButton}>
+                <TouchableOpacity 
+                  testID="view-calendar-button" 
+                  style={styles.secondaryButton} 
+                  onPress={() => navigation.navigate('Calendar')}
+                >
                   <Text style={styles.secondaryButtonText}>View Calendar</Text>
                 </TouchableOpacity>
                 <TouchableOpacity testID="qr-code-generator-button" style={styles.secondaryButton} onPress={() => navigation.navigate('QRCodeDemo')}>
                   <Text style={styles.secondaryButtonText}>QR Code Generator</Text>
+                </TouchableOpacity>
+                <TouchableOpacity testID="process-auctions-button" style={styles.secondaryButton} onPress={handleManualAuctionProcessing}>
+                  <Text style={styles.secondaryButtonText}>Process Expired Auctions</Text>
+                </TouchableOpacity>
+                <TouchableOpacity testID="supabase-test-button" style={styles.secondaryButton} onPress={() => navigation.navigate('SupabaseTest')}>
+                  <Text style={styles.secondaryButtonText}>Test Supabase</Text>
+                </TouchableOpacity>
+                <TouchableOpacity testID="debug-button" style={styles.secondaryButton} onPress={() => navigation.navigate('Debug')}>
+                  <Text style={styles.secondaryButtonText}>Debug Connection</Text>
                 </TouchableOpacity>
               </View>
             </CardContent>
           </Card>
 
           {/* Recent Activity */}
-          <Card>
+          <Card style={cardSurfaceStyle}>
             <CardContent>
               <Text style={styles.cardTitle}>Recent Bids</Text>
               <View style={styles.cardContent}>
@@ -121,7 +165,7 @@ export function HandymanDashboard() {
           </Card>
 
           {/* Active Auctions */}
-          <Card>
+          <Card style={cardSurfaceStyle}>
             <CardContent>
               <View style={styles.cardHeaderRow}>
                 <Text style={styles.cardTitle}>Your Active Auctions</Text>
@@ -375,4 +419,15 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '500',
   },
+  settingsButton: {
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.2)',
+    marginRight: 12,
+  },
 })
+
+export default HandymanDashboard

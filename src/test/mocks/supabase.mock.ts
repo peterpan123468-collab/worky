@@ -1,29 +1,65 @@
 // Mock Supabase client for testing
 export const createMockSupabaseClient = () => {
-  const mockSelect = jest.fn().mockReturnThis()
-  const mockInsert = jest.fn().mockReturnThis()
-  const mockUpdate = jest.fn().mockReturnThis()
-  const mockDelete = jest.fn().mockReturnThis()
-  const mockEq = jest.fn().mockReturnThis()
-  const mockSingle = jest.fn()
-  const mockLimit = jest.fn().mockReturnThis()
+  const singleQueue: Array<() => Promise<any>> = []
+  const queryQueue: Array<() => Promise<any>> = []
 
-  const mockFrom = jest.fn(() => ({
-    select: mockSelect,
-    insert: mockInsert,
-    update: mockUpdate,
-    delete: mockDelete,
-    eq: mockEq,
-    single: mockSingle,
-    limit: mockLimit
-  }))
+  const createBuilder = () => {
+    const builder: any = {}
+    builder.__queuedResults = []
+
+    builder.select = jest.fn(() => builder)
+    builder.insert = jest.fn(() => builder)
+    builder.update = jest.fn(() => builder)
+    builder.delete = jest.fn(() => builder)
+    builder.eq = jest.fn(() => builder)
+    builder.limit = jest.fn(() => builder)
+    builder.order = jest.fn(() => builder)
+
+    builder.single = jest.fn(() => {
+      console.log('mock single queue', singleQueue.length)
+      const next = singleQueue.shift()
+      return next ? next() : Promise.resolve({ data: null, error: null })
+    })
+
+    builder.then = jest.fn((resolve: (value: any) => void, reject?: (reason: any) => void) => {
+      if (builder.__queuedResults.length > 0) {
+        return Promise.resolve(builder.__queuedResults.shift()).then(resolve, reject)
+      }
+      const next = queryQueue.shift()
+      const promise = next ? next() : Promise.resolve({ data: null, error: null })
+      return promise.then(resolve, reject)
+    })
+
+    builder.catch = jest.fn((reject: (reason: any) => void) => {
+      if (builder.__queuedResults.length > 0) {
+        return Promise.resolve(builder.__queuedResults.shift()).catch(reject)
+      }
+      const next = queryQueue.shift()
+      const promise = next ? next() : Promise.resolve({ data: null, error: null })
+      return promise.catch(reject)
+    })
+
+    return builder
+  }
+
+  const queryBuilder = createBuilder()
+
+  const enqueueSingle = (value: any) => {
+    singleQueue.push(() => Promise.resolve(value))
+  }
+
+  const enqueueQueryResult = (value: any) => {
+    queryBuilder.__queuedResults.push(value)
+  }
+
+  const mockFrom = jest.fn(() => queryBuilder)
 
   const mockAuth = {
     signUp: jest.fn(),
     signInWithPassword: jest.fn(),
     signOut: jest.fn(),
-    getUser: jest.fn(),
-    getSession: jest.fn(),
+    getUser: jest.fn(() => Promise.resolve({ data: { user: null }, error: null })),
+    getSession: jest.fn(() => Promise.resolve({ data: { session: null }, error: null })),
     onAuthStateChange: jest.fn(() => ({
       data: { subscription: { unsubscribe: jest.fn() } }
     })),
@@ -35,17 +71,25 @@ export const createMockSupabaseClient = () => {
   return {
     from: mockFrom,
     auth: mockAuth,
-    // Helper methods for testing
     __mocks: {
-      select: mockSelect,
-      insert: mockInsert,
-      update: mockUpdate,
-      delete: mockDelete,
-      eq: mockEq,
-      single: mockSingle,
-      limit: mockLimit,
+      builder: queryBuilder,
+      resetQueues: () => {
+        singleQueue.length = 0
+        queryQueue.length = 0
+        queryBuilder.__queuedResults.length = 0
+      },
+      select: queryBuilder.select,
+      insert: queryBuilder.insert,
+      update: queryBuilder.update,
+      delete: queryBuilder.delete,
+      eq: queryBuilder.eq,
+      single: queryBuilder.single,
+      limit: queryBuilder.limit,
+      order: queryBuilder.order,
       from: mockFrom,
-      auth: mockAuth
+      auth: mockAuth,
+      enqueueSingle,
+      enqueueQueryResult
     }
   }
 }

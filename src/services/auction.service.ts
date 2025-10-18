@@ -1,15 +1,11 @@
 import { supabase } from '../lib/supabase'
-import { Auction, AuctionInsert, AuctionBid } from '../types/database.types'
+import { Auction, AuctionInsert } from '../types/database.types'
 import { AuctionFilters, CreateAuctionPayload, BidInput, BidResult } from '../types/auction.types'
-import { notificationService } from '../services/notification.service'
 
 class AuctionService {
   async createAuction(handymanId: string, payload: CreateAuctionPayload) {
-    console.log('🏪 AuctionService.createAuction called')
-    console.log('👤 Handyman ID:', handymanId)
-    console.log('📦 Payload:', JSON.stringify(payload, null, 2))
+    console.log('[AuctionService] createAuction', { handymanId })
 
-    // Validate inputs
     if (!handymanId) {
       throw new Error('Handyman ID is required')
     }
@@ -25,17 +21,15 @@ class AuctionService {
     if (payload.starting_price < 20) {
       throw new Error('Starting price must be at least CHF 20')
     }
-    
-    // Ensure auction duration is reasonable (at least 15 minutes, max 24 hours)
+
     const startTime = new Date(payload.start_time)
     const endTime = new Date(payload.end_time)
-    const durationMs = endTime.getTime() - startTime.getTime()
-    const durationMinutes = durationMs / (1000 * 60)
-    
+    const durationMinutes = (endTime.getTime() - startTime.getTime()) / 60000
+
     if (durationMinutes < 15) {
       throw new Error('Auction duration must be at least 15 minutes')
     }
-    
+
     if (durationMinutes > 24 * 60) {
       throw new Error('Auction duration cannot exceed 24 hours')
     }
@@ -51,98 +45,82 @@ class AuctionService {
       starting_price: payload.starting_price,
       reserve_price: payload.reserve_price ?? null,
       bid_increment: payload.bid_increment ?? null,
-      ends_at: payload.end_time, // alias for clarity with DB function names
+      ends_at: payload.end_time,
       status: 'active',
       auto_extend: payload.auto_extend ?? null,
       auto_extend_minutes: payload.auto_extend_minutes ?? null,
     }
 
-    console.log('📝 Database insert payload:', JSON.stringify(insert, null, 2))
+    console.log('[AuctionService] insert payload', insert)
 
     try {
-      // Attempt insert; on PGRST204, strip the missing column and retry a few times
       let attempt = 0
-      let maxAttempts = 5
-      let retryPayload: any = { ...insert }
-      let data: any = null
+      const maxAttempts = 5
+      let retryPayload: Record<string, unknown> = { ...insert }
+      let data: Auction | null = null
       let error: any = null
 
       while (attempt < maxAttempts) {
-        const res = await supabase
+        const response = await supabase
           .from('auctions')
           .insert(retryPayload)
           .select('*')
           .single()
 
-        data = res.data
-        error = res.error
+        data = response.data as Auction | null
+        error = response.error
 
-        if (!error) break
+        if (!error) {
+          break
+        }
 
-        // If schema cache says a column is missing, remove it and retry
         if (error.code === 'PGRST204' && error.message) {
           const match = error.message.match(/'([^']+)'/)
-          const missingCol = match?.[1]
-          if (missingCol && retryPayload.hasOwnProperty(missingCol)) {
-            console.warn(`⚠️ Schema mismatch: column ${missingCol} missing. Retrying without it...`)
-            delete retryPayload[missingCol]
-            attempt++
+          const missingColumn = match?.[1]
+          if (missingColumn && Object.prototype.hasOwnProperty.call(retryPayload, missingColumn)) {
+            console.warn('[AuctionService] schema mismatch, retrying without column', missingColumn)
+            delete retryPayload[missingColumn]
+            attempt += 1
             continue
           }
         }
-        // Non-retriable error
+
         break
       }
 
       if (error) {
-        console.error('❌ Supabase error:', error)
-        console.error('Error code:', error.code)
-        console.error('Error details:', error.details)
-        console.error('Error hint:', error.hint)
-        console.error('Error message:', error.message)
-
-        // Enhanced error messages
-        if (error.code === '42501') {
-          throw new Error('Database access denied. Please check your authentication and permissions.')
-        } else if (error.code === '23505') {
-          throw new Error('Auction already exists with these parameters.')
-        } else if (error.code === '23503') {
-          throw new Error('Invalid reference data. Please check handyman ID.')
-        } else if (error.message.includes('JWT')) {
-          throw new Error('Authentication token expired. Please log out and log back in.')
-        } else {
-          throw new Error(`Database error (${error.code}): ${error.message}`)
-        }
+        console.error('[AuctionService] Supabase error', error)
+        throw error
       }
 
-      console.log('✅ Auction created successfully:', data)
+      console.log('[AuctionService] auction created', data)
       return data as Auction
-
     } catch (networkError) {
-      console.error('🌐 Network/Connection error:', networkError)
+      console.error('[AuctionService] network error', networkError)
 
-      if (networkError instanceof Error) {
-        if (networkError.message.includes('fetch')) {
-          throw new Error('Network connection failed. Please check your internet connection.')
-        } else if (networkError.message.includes('timeout')) {
-          throw new Error('Request timed out. Please try again.')
-        } else {
-          // Re-throw our custom errors or unknown errors
-          throw networkError
-        }
+      if (!(networkError instanceof Error)) {
+        throw networkError
       }
 
-      throw new Error('Unknown network error occurred.')
+      const message = networkError.message.toLowerCase()
+      if (message.includes('fetch')) {
+        throw new Error('Network connection failed. Please check your internet connection.')
+      }
+      if (message.includes('timeout')) {
+        throw new Error('Request timed out. Please try again.')
+      }
+
+      throw networkError
     }
   }
 
   async listAuctions(filters: AuctionFilters = {}) {
-    let query = supabase.from('auctions').select('*').order('created_at', { ascending: false })
+    const query = supabase.from('auctions').select('*').order('created_at', { ascending: false })
 
-    if (filters.status) query = query.eq('status', filters.status)
-    if (filters.region) query = query.eq('region', filters.region)
-    if (filters.serviceType) query = query.eq('service_type', filters.serviceType)
-    if (filters.handymanId) query = query.eq('handyman_id', filters.handymanId)
+    if (filters.status) query.eq('status', filters.status)
+    if (filters.region) query.eq('region', filters.region)
+    if (filters.serviceType) query.eq('service_type', filters.serviceType)
+    if (filters.handymanId) query.eq('handyman_id', filters.handymanId)
 
     const { data, error } = await query
     if (error) throw error
@@ -170,19 +148,114 @@ class AuctionService {
     if (error) {
       return { success: false, error: error.message }
     }
-    
-    // Send notification to the previous highest bidder if they were outbid
+
     if (data?.success && data?.new_highest_bid) {
-      // The database function already handles sending outbid notifications
-      // We could add additional notifications here if needed
+      // Database triggers handle bidder notifications today
     }
-    
+
     return {
       success: Boolean(data?.success ?? true),
       error: data?.error,
       bidId: data?.bid_id,
       newHighestBid: data?.new_highest_bid,
     }
+  }
+
+  /**
+   * Close an auction manually (set status to 'ended')
+   */
+  async closeAuction(auctionId: string): Promise<Auction> {
+    console.log(`[AuctionService] Attempting to close auction ${auctionId}`)
+    try {
+      // First, let's get the current auction to check its status
+      console.log(`[AuctionService] Fetching current auction status for ${auctionId}`)
+      const { data: currentAuction, error: fetchError } = await supabase
+        .from('auctions')
+        .select('id, status, title')
+        .eq('id', auctionId)
+        .single()
+      
+      if (fetchError) {
+        console.error('[AuctionService] Error fetching auction:', fetchError)
+        throw new Error(`Failed to fetch auction: ${fetchError.message}`)
+      }
+      
+      if (!currentAuction) {
+        console.error(`[AuctionService] Auction ${auctionId} not found`)
+        throw new Error('Auction not found')
+      }
+      
+      console.log(`[AuctionService] Current auction status: ${currentAuction.status}`)
+      
+      // Check if the auction is already closed or cancelled
+      if (currentAuction.status === 'ended') {
+        console.log(`[AuctionService] Auction ${auctionId} is already closed`)
+        throw new Error('Auction is already closed')
+      }
+      
+      if (currentAuction.status === 'cancelled') {
+        console.log(`[AuctionService] Auction ${auctionId} is already cancelled`)
+        throw new Error('Auction is already cancelled')
+      }
+      
+      // Only update if the auction is currently active
+      if (currentAuction.status !== 'active') {
+        console.log(`[AuctionService] Auction ${auctionId} has invalid status: ${currentAuction.status}`)
+        throw new Error(`Cannot close auction with status: ${currentAuction.status}`)
+      }
+      
+      // Proceed with closing the auction
+      console.log(`[AuctionService] Closing auction ${auctionId}`)
+      const { data, error } = await supabase
+        .from('auctions')
+        .update({ status: 'ended', updated_at: new Date().toISOString() })
+        .eq('id', auctionId)
+        .eq('status', 'active') // Defensive check to ensure we only close active auctions
+        .select()
+        .single()
+      
+      if (error) {
+        console.error('[AuctionService] Error closing auction:', error)
+        // Provide more specific error messages based on the error type
+        if (error.code === '23514') {
+          // Constraint violation
+          throw new Error('Auction status constraint violation. The auction may already be closed or have an invalid status.')
+        } else if (error.code === 'PGRST116') {
+          // No rows found (likely because status wasn't 'active')
+          throw new Error('Auction cannot be closed. It may have already been closed or have a different status.')
+        } else {
+          // Generic error
+          throw new Error(error.message || 'Failed to close auction due to database error.')
+        }
+      }
+      
+      if (!data) {
+        console.error(`[AuctionService] No data returned when closing auction ${auctionId}`)
+        throw new Error('Auction not found or already closed.')
+      }
+      
+      console.log(`[AuctionService] Successfully closed auction ${auctionId}`)
+      return data as Auction
+    } catch (error) {
+      console.error('[AuctionService] Exception in closeAuction:', error)
+      if (error instanceof Error) {
+        throw error
+      } else {
+        throw new Error('Failed to close auction due to unknown error.')
+      }
+    }
+  }
+
+  /**
+   * Delete an auction permanently
+   */
+  async deleteAuction(auctionId: string): Promise<void> {
+    const { error } = await supabase
+      .from('auctions')
+      .delete()
+      .eq('id', auctionId)
+    
+    if (error) throw error
   }
 }
 

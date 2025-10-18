@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react'
-import { View, Text, StyleSheet, ScrollView, ActivityIndicator, Alert } from 'react-native'
+import { View, Text, StyleSheet, ScrollView, ActivityIndicator, Alert, TouchableOpacity } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
-import { RouteProp, useRoute } from '@react-navigation/native'
+import { RouteProp, useRoute, useNavigation } from '@react-navigation/native'
 import { RootStackParamList } from '../navigation/AppNavigator'
 import { Background } from '../components/Background'
 import { auctionService } from '../services/auction.service'
@@ -19,6 +19,7 @@ type Route = RouteProp<RootStackParamList, 'AuctionDetail'>
 
 export function AuctionDetail() {
   const { params } = useRoute<Route>()
+  const navigation = useNavigation()
   const [auction, setAuction] = useState<Auction | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -76,6 +77,75 @@ export function AuctionDetail() {
 
   const current = auction.current_highest_bid ?? auction.starting_price
 
+  const handleCloseAuction = () => {
+    if (!auction) return
+    
+    Alert.alert(
+      'Close Auction',
+      'Are you sure you want to close this auction? This will end the auction and select a winner if there are bids.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Close Auction',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              const updatedAuction = await auctionService.closeAuction(auction.id)
+              setAuction(updatedAuction)
+              Alert.alert('Success', 'Auction has been closed successfully.')
+            } catch (error) {
+              console.error('[AuctionDetail] Error closing auction:', error)
+              let errorMessage = 'Failed to close auction.'
+              if (error instanceof Error) {
+                // Provide more user-friendly error messages
+                if (error.message.includes('already closed')) {
+                  errorMessage = 'This auction is already closed.'
+                } else if (error.message.includes('already cancelled')) {
+                  errorMessage = 'This auction is already cancelled.'
+                } else if (error.message.includes('not found')) {
+                  errorMessage = 'Auction not found.'
+                } else if (error.message.includes('constraint violation')) {
+                  errorMessage = 'Cannot close auction. It may already be closed or have an invalid status.'
+                } else {
+                  errorMessage += ' ' + error.message
+                }
+              } else {
+                errorMessage += ' Unknown error occurred.'
+              }
+              Alert.alert('Error', errorMessage)
+            }
+          }
+        }
+      ]
+    )
+  }
+
+  const handleDeleteAuction = () => {
+    if (!auction) return
+    
+    Alert.alert(
+      'Delete Auction',
+      'Are you sure you want to delete this auction? This action cannot be undone.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await auctionService.deleteAuction(auction.id)
+              Alert.alert('Success', 'Auction has been deleted successfully.', [
+                { text: 'OK', onPress: () => navigation.goBack() }
+              ])
+            } catch (error) {
+              Alert.alert('Error', 'Failed to delete auction: ' + (error instanceof Error ? error.message : 'Unknown error'))
+            }
+          }
+        }
+      ]
+    )
+  }
+
   return (
     <Background style={styles.background}>
       <SafeAreaView style={styles.safeArea} edges={['top']}>
@@ -111,6 +181,18 @@ export function AuctionDetail() {
             {bids.length > 0 && (
               <Text style={styles.ownerInfo}>Current highest bid: {formatCHF(current)}</Text>
             )}
+            
+            {/* Action buttons for auction owner */}
+            <View style={styles.actionButtons}>
+              {auction.status === 'active' && (
+                <TouchableOpacity style={styles.closeButton} onPress={handleCloseAuction}>
+                  <Text style={styles.closeButtonText}>Close Auction</Text>
+                </TouchableOpacity>
+              )}
+              <TouchableOpacity style={styles.deleteButton} onPress={handleDeleteAuction}>
+                <Text style={styles.deleteButtonText}>Delete Auction</Text>
+              </TouchableOpacity>
+            </View>
           </View>
         )}
 
@@ -193,5 +275,34 @@ const styles = StyleSheet.create({
   bidAmount: { color: '#ffffff', fontWeight: '600' },
   yourBidLabel: { color: 'rgba(0, 255, 0, 0.8)', fontSize: 12, fontWeight: '500' },
   bidMeta: { color: 'rgba(255, 255, 255, 0.7)', fontSize: 12 },
-  ownerInfo: { color: 'rgba(255, 255, 255, 0.8)', fontSize: 16, marginBottom: 8 },
+  actionButtons: {
+    flexDirection: 'row',
+    gap: 12,
+    marginTop: 16,
+  },
+  closeButton: {
+    flex: 1,
+    backgroundColor: '#f59e0b',
+    paddingVertical: 12,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  closeButtonText: {
+    color: '#ffffff',
+    fontWeight: '600',
+    fontSize: 16,
+  },
+  deleteButton: {
+    flex: 1,
+    backgroundColor: '#ef4444',
+    paddingVertical: 12,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  deleteButtonText: {
+    color: '#ffffff',
+    fontWeight: '600',
+    fontSize: 16,
+  },
+  ownerInfo: { color: 'rgba(255,255,255,0.8)', fontSize: 16, marginBottom: 8 },
 })

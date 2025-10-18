@@ -9,6 +9,7 @@ export const runConnectionTests = async () => {
 
   try {
     // Test basic connection
+    console.log('⏳ Testing Supabase connection...')
     const isConnected = await testSupabaseConnection()
 
     if (isConnected) {

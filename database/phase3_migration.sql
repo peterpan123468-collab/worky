@@ -601,56 +601,107 @@ $$ LANGUAGE plpgsql SECURITY DEFINER;
 CREATE OR REPLACE FUNCTION public.close_expired_auctions()
 RETURNS TABLE(processed_count INTEGER) AS $$
 DECLARE
-  v_row public.auctions%ROWTYPE;
-  v_processed INTEGER := 0;
+  expired_auction public.auctions%ROWTYPE;
+  count INTEGER := 0;
 BEGIN
-  FOR v_row IN
+  -- Process each expired auction that is still active
+  FOR expired_auction IN
     SELECT * FROM public.auctions
     WHERE status = 'active' AND ends_at <= NOW()
   LOOP
-    UPDATE public.auctions
-    SET status = 'ended',
-        winner_id = v_row.current_highest_bidder_id,
+    -- Update auction status to ended only if it's still active
+    -- Use a more defensive approach to ensure we don't violate constraints
+    BEGIN
+      UPDATE public.auctions 
+      SET 
+        status = 'ended', 
+        winner_id = expired_auction.current_highest_bidder_id,
         updated_at = NOW()
-    WHERE id = v_row.id;
+      WHERE id = expired_auction.id AND status = 'active';
 
-    IF v_row.current_highest_bidder_id IS NOT NULL
-       AND (v_row.reserve_price IS NULL OR v_row.current_highest_bid >= v_row.reserve_price) THEN
-      INSERT INTO public.bookings (
-        customer_id, handyman_id, status, total_price, booking_type,
-        auction_id, winning_bid_amount, customer_address, work_description
-      ) VALUES (
-        v_row.current_highest_bidder_id, v_row.handyman_id, 'confirmed', v_row.current_highest_bid, 'auction',
-        v_row.id, v_row.current_highest_bid, 'Address to be provided', v_row.description
-      );
+      -- Check if the update actually happened (auction was still active)
+      IF FOUND THEN
+        -- Create booking if there's a winner and reserve price is met
+        IF expired_auction.current_highest_bidder_id IS NOT NULL 
+           AND (expired_auction.reserve_price IS NULL 
+                OR expired_auction.current_highest_bid >= expired_auction.reserve_price) THEN
+          
+          -- Create booking for auction winner
+          INSERT INTO public.bookings (
+            customer_id,
+            handyman_id,
+            status,
+            total_price,
+            booking_type,
+            auction_id,
+            winning_bid_amount,
+            customer_address,
+            work_description
+          ) VALUES (
+            expired_auction.current_highest_bidder_id,
+            expired_auction.handyman_id,
+            'confirmed', -- Auction wins auto-confirm
+            expired_auction.current_highest_bid,
+            'auction',
+            expired_auction.id,
+            expired_auction.current_highest_bid,
+            'Address to be provided', -- Customer will update this
+            expired_auction.description
+          );
 
-      INSERT INTO public.notifications (user_id, type, title, message, data)
-      VALUES (
-        v_row.current_highest_bidder_id, 'auction_won', 'Congratulations! You won the auction',
-        'You won the auction for "' || v_row.title || '"',
-        json_build_object('auction_id', v_row.id, 'winning_bid', v_row.current_highest_bid)
-      );
+          -- Notify winner
+          INSERT INTO public.notifications (user_id, type, title, message, data)
+          VALUES (
+            expired_auction.current_highest_bidder_id,
+            'auction_won',
+            'Congratulations! You won the auction',
+            'You won the auction for "' || expired_auction.title || '"',
+            json_build_object(
+              'auction_id', expired_auction.id,
+              'winning_bid', expired_auction.current_highest_bid
+            )
+          );
 
-      INSERT INTO public.notifications (user_id, type, title, message, data)
-      VALUES (
-        v_row.handyman_id, 'auction_ended', 'Your auction has ended',
-        'Your auction "' || v_row.title || '" was won for CHF ' || v_row.current_highest_bid,
-        json_build_object('auction_id', v_row.id, 'winning_bid', v_row.current_highest_bid, 'winner_id', v_row.current_highest_bidder_id)
-      );
-    END IF;
+          -- Notify handyman
+          INSERT INTO public.notifications (user_id, type, title, message, data)
+          VALUES (
+            expired_auction.handyman_id,
+            'auction_ended',
+            'Your auction has ended',
+            'Your auction "' || expired_auction.title || '" was won for CHF ' || expired_auction.current_highest_bid,
+            json_build_object(
+              'auction_id', expired_auction.id,
+              'winning_bid', expired_auction.current_highest_bid,
+              'winner_id', expired_auction.current_highest_bidder_id
+            )
+          );
+        END IF;
 
-    INSERT INTO public.notifications (user_id, type, title, message, data)
-    SELECT DISTINCT ab.bidder_id, 'auction_lost', 'Auction ended',
-      'The auction for "' || v_row.title || '" has ended',
-      json_build_object('auction_id', v_row.id, 'winning_bid', v_row.current_highest_bid)
-    FROM public.auction_bids ab
-    WHERE ab.auction_id = v_row.id
-      AND ab.bidder_id <> COALESCE(v_row.current_highest_bidder_id, '00000000-0000-0000-0000-000000000000'::UUID);
-
-    v_processed := v_processed + 1;
+        -- Notify other bidders that auction ended
+        INSERT INTO public.notifications (user_id, type, title, message, data)
+        SELECT 
+          DISTINCT ab.bidder_id,
+          'auction_lost',
+          'Auction ended',
+          'The auction for "' || expired_auction.title || '" has ended',
+          json_build_object(
+            'auction_id', expired_auction.id,
+            'winning_bid', expired_auction.current_highest_bid
+          )
+        FROM public.auction_bids ab
+        WHERE ab.auction_id = expired_auction.id
+        AND ab.bidder_id != COALESCE(expired_auction.current_highest_bidder_id, '00000000-0000-0000-0000-000000000000'::UUID);
+        
+        count := count + 1;
+      END IF;
+    EXCEPTION
+      WHEN OTHERS THEN
+        -- Log the error but continue processing other auctions
+        RAISE NOTICE 'Error processing auction %: %', expired_auction.id, SQLERRM;
+    END;
   END LOOP;
-
-  RETURN QUERY SELECT v_processed;
+  
+  RETURN QUERY SELECT count;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 

@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useState } from 'react'
 import { View, Text, ScrollView, TouchableOpacity, StyleSheet, TextInput } from 'react-native'
 import { useNavigation } from '@react-navigation/native'
 import { StackNavigationProp } from '@react-navigation/stack'
@@ -8,6 +8,7 @@ import { useAuth } from '../contexts/AuthContext'
 import { useNotifications } from '../contexts/NotificationContext'
 import { Background } from '../components/Background'
 import { useTheme } from '../contexts/ThemeContext'
+import { useLanguage } from '../contexts/LanguageContext'
 import { glassCard } from '../components/themeStyles'
 import Ionicons from '@expo/vector-icons/Ionicons'
 import { RootStackParamList } from '../navigation/AppNavigator'
@@ -18,15 +19,48 @@ import { useCustomerDashboard } from '../hooks/useCustomerDashboard'
 import { useBiddingHistory } from '../hooks/useBiddingHistory'
 import { formatSwissDateTime } from '../utils/timezone'
 import { formatCHF } from '../utils/currency'
+import { BookingFormModal } from '../components/booking/BookingFormModal'
+import { TimeSlot } from '../types/database.types'
+import { useToast } from '../contexts/ToastContext'
+import { createBookingFromSlot } from '../services/booking.service'
+import { t } from '../utils/i18n'
 
 type Nav = StackNavigationProp<RootStackParamList>
 export function CustomerDashboard() {
   const { logout, user } = useAuth()
+  const { show } = useToast()
   const { unreadCount } = useNotifications()
   const { theme } = useTheme()
+  const { language } = useLanguage()
   const navigation = useNavigation<Nav>()
   const { slots, bookings } = useCustomerDashboard(user?.id)
   const { bids, loading: bidsLoading } = useBiddingHistory(user?.id)
+  
+  const [activeSlot, setActiveSlot] = useState<TimeSlot | null>(null)
+  const [bookingSubmitting, setBookingSubmitting] = useState(false)
+  
+  const handleBookingSubmit = async ({ address, description }: { address: string; description: string }) => {
+    if (!user?.id || !activeSlot) {
+      show('You need to be logged in to book a slot', { type: 'error' })
+      return
+    }
+    try {
+      setBookingSubmitting(true)
+      await createBookingFromSlot({
+        slotId: activeSlot.id,
+        customerId: user.id,
+        workDescription: description,
+        address,
+      })
+      show('Booking request sent', { type: 'success' })
+      setActiveSlot(null)
+    } catch (e) {
+      show(e instanceof Error ? e.message : 'Could not create booking', { type: 'error' })
+    } finally {
+      setBookingSubmitting(false)
+    }
+  }
+
   return (
     <Background style={styles.background}>
       <ScrollView style={styles.scrollView}>
@@ -34,13 +68,16 @@ export function CustomerDashboard() {
           {/* Header */}
           <View style={styles.header}>
             <View style={styles.headerText}>
-              <Text style={styles.welcomeText}>Find Help</Text>
-              <Text style={styles.subtitleText}>Book services or join auctions</Text>
+              <Text style={styles.welcomeText}>{t('dashboard.welcome', language)}</Text>
+              <Text style={styles.subtitleText}>{t('dashboard.subtitle', language)}</Text>
             </View>
             <View style={styles.headerActions}>
+              <TouchableOpacity onPress={() => navigation.navigate('Settings')} style={styles.settingsButton}>
+                <Ionicons name="settings-outline" size={24} color="#ffffff" />
+              </TouchableOpacity>
               <NotificationBell />
               <TouchableOpacity onPress={logout} style={styles.logoutButton}>
-                <Text style={styles.logoutButtonText}>Logout</Text>
+                <Text style={styles.logoutButtonText}>{t('nav.logout', language)}</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -65,7 +102,7 @@ export function CustomerDashboard() {
           <Card style={[theme === 'glass' && glassCard]}>
             <CardContent>
               <Text style={styles.cardTitle}>Quick Actions</Text>
-              <View style={styles.cardContent}>
+              <View style={styles.quickActionsContent}>
                 <TouchableOpacity testID="browse-available-slots-button" style={styles.primaryButton}>
                   <Text style={styles.primaryButtonText}>Browse Available Slots</Text>
                 </TouchableOpacity>
@@ -102,7 +139,10 @@ export function CustomerDashboard() {
                           <Ionicons name="star" size={14} color="#f5c518" />
                           <Text style={styles.serviceRatingText}>Open</Text>
                         </View>
-                        <TouchableOpacity style={styles.bookButton}>
+                        <TouchableOpacity 
+                          style={styles.bookButton}
+                          onPress={() => setActiveSlot(s)}
+                        >
                           <Text style={styles.bookButtonText}>Book</Text>
                         </TouchableOpacity>
                       </View>
@@ -164,9 +204,18 @@ export function CustomerDashboard() {
           </Card>
         </View>
       </ScrollView>
+      <BookingFormModal
+        visible={Boolean(activeSlot)}
+        slot={activeSlot}
+        onClose={() => setActiveSlot(null)}
+        onSubmit={handleBookingSubmit}
+        submitting={bookingSubmitting}
+        estimatedPrice={null}
+      />
     </Background>
   )
 }
+
 const styles = StyleSheet.create({
   background: {
     flex: 1,
@@ -217,10 +266,21 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 12,
   },
+  settingsButton: {
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.2)',
+    marginRight: 12,
+  },
   searchContainer: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
     gap: 12,
+    paddingVertical: 20,
   },
   searchInput: {
     flex: 1,
@@ -262,7 +322,15 @@ const styles = StyleSheet.create({
     fontSize: 14,
   },
   cardContent: {
+    alignItems: 'center',
+    justifyContent: 'center',
     gap: 12,
+  },
+  quickActionsContent: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 12,
+    paddingVertical: 20,
   },
   primaryButton: {
     backgroundColor: 'rgba(255, 255, 255, 0.2)',
@@ -443,3 +511,5 @@ const styles = StyleSheet.create({
     fontSize: 14,
   },
 })
+
+export default CustomerDashboard

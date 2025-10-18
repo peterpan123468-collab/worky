@@ -4,9 +4,10 @@ import { Auction, AuctionInsert } from '../../types/database.types'
 import { CreateAuctionPayload, BidInput, AuctionFilters } from '../../types/auction.types'
 
 // Mock the supabase client
-jest.mock('../../lib/supabase', () => ({
-  supabase: createMockSupabaseClient()
-}))
+jest.mock('../../lib/supabase', () => {
+  const { createMockSupabaseClient } = require('../../test/mocks/supabase.mock')
+  return { supabase: createMockSupabaseClient() }
+})
 
 const { supabase } = require('../../lib/supabase')
 

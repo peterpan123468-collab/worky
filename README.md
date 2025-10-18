@@ -83,6 +83,17 @@ src/
    npm run web    # Web browser
    ```
 
+## Supabase Connection Troubleshooting
+
+If you're experiencing issues connecting to Supabase:
+
+1. Check that your environment variables are properly set in the [.env](file:///C:/Users/Kevin/worky_v2/.env) file
+2. Run the connection test: `npm run test:supabase`
+3. Use the in-app Supabase test screen (available in the Handyman Dashboard)
+4. Refer to [docs/SUPABASE_TROUBLESHOOTING.md](file:///C:/Users/Kevin/worky_v2/docs/SUPABASE_TROUBLESHOOTING.md) for detailed troubleshooting steps
+
+After making changes to the [.env](file:///C:/Users/Kevin/worky_v2/.env) file, remember to restart the development server.
+
 ## User Journey Implementation
 
 The app implements the complete user journeys as documented:

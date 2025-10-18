@@ -1,10 +1,12 @@
-import { useCallback, useEffect, useState } from 'react'
-import { Booking, TimeSlot } from '../types/database.types'
-import { getAvailableSlots, getCustomerBookings } from '../services/dashboard.service'
+import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useRealtimeChannel } from './useRealtimeChannel'
+import { listCustomerBookings, BookingWithSlot } from '../services/booking.service'
+import { getAvailableSlots } from '../services/dashboard.service'
+import { TimeSlot } from '../types/database.types'
 
 export function useCustomerDashboard(customerId?: string) {
   const [slots, setSlots] = useState<TimeSlot[]>([])
-  const [bookings, setBookings] = useState<Booking[]>([])
+  const [bookings, setBookings] = useState<BookingWithSlot[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -13,10 +15,10 @@ export function useCustomerDashboard(customerId?: string) {
       setLoading(true)
       const [s, b] = await Promise.all([
         getAvailableSlots(5),
-        customerId ? getCustomerBookings(customerId, 5) : Promise.resolve([] as Booking[]),
+        customerId ? listCustomerBookings(customerId, 5) : Promise.resolve([]),
       ])
       setSlots(s)
-      setBookings(b as Booking[])
+      setBookings(b as BookingWithSlot[])
       setError(null)
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Failed to load')
@@ -27,6 +29,45 @@ export function useCustomerDashboard(customerId?: string) {
 
   useEffect(() => { refresh() }, [refresh])
 
-  return { slots, bookings, loading, error, refresh }
+  const slotConfig = useMemo(() => ({
+    event: '*',
+    schema: 'public',
+    table: 'time_slots',
+    filter: 'status=eq.open',
+  }), [])
+
+  const bookingConfig = useMemo(() => ({
+    event: '*',
+    schema: 'public',
+    table: 'bookings',
+    filter: customerId ? `customer_id=eq.${customerId}` : undefined,
+  }), [customerId])
+
+  useRealtimeChannel({
+    channelName: 'customer-dashboard-slots',
+    changeConfig: slotConfig,
+    refresh,
+    refreshOnEvent: true,
+    pollIntervalMs: 60000,
+  })
+
+  useRealtimeChannel({
+    channelName: `customer-dashboard-bookings-${customerId ?? 'anon'}`,
+    changeConfig: bookingConfig,
+    refresh,
+    enabled: Boolean(customerId),
+    refreshOnEvent: true,
+    pollIntervalMs: 60000,
+  })
+
+  return {
+    slots,
+    bookings,
+    availableSlots: slots,
+    myBookings: bookings,
+    loading,
+    error,
+    refresh,
+  }
 }
 

@@ -14,13 +14,13 @@ Close the gap between documented customer and handyman journeys and the current 
 
 ### P0 - Flow Unblockers (target: 3-4 days)
 - **Customer booking interactions**
-  - Wire Book CTA in CustomerDashboard to booking creation (hand off to checkout placeholder until payments ready)
-  - Implement booking detail sheet: cancel/reschedule actions with Supabase mutations and toast feedback
-  - Activate My Bookings quick action and link to dedicated bookings screen (reuse BrowseAuctions list patterns)
-  - Deliver search filtering backed by Supabase queries (region, skill, availability window)
+  - [x] Wire Book CTA in CustomerDashboard to booking creation (hand off to checkout placeholder until payments ready)
+  - [x] Implement booking detail sheet: cancel/reschedule actions with Supabase mutations and toast feedback
+  - [x] Activate My Bookings quick action and link to dedicated bookings screen (reuse BrowseAuctions list patterns)
+  - [x] Deliver search filtering backed by Supabase queries (region, skill, availability window)
 - **Handyman availability controls**
-  - Hook Set Availability to a modal/editor for CRUD on time_slots
-  - Implement quick status toggles (open slots, block off time) and make sure customer feeds update via context refresh
+  - [x] Hook Set Availability to a modal/editor for CRUD on time_slots
+  - [x] Implement quick status toggles (open slots, block off time) and make sure customer feeds update via context refresh
 - **Shared real-time plumbing**
   - Extend realtime hooks beyond auctions to bookings and availability updates (fallback polling when socket drops)
 - **QA & docs**

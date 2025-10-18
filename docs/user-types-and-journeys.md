@@ -106,6 +106,12 @@ graph TB
     N --> C
 ```
 
+Recent updates:
+- Customer dashboard quick actions now open the booking creation flow and My Bookings overview without leaving the glass UI context.
+- The dedicated bookings screen surfaces upcoming and past services with a detail sheet that supports cancel and reschedule actions against Supabase data.
+- The booking creation flow supports filtering by region, skill, and availability window before opening the confirmation sheet.
+- Handymen manage availability via calendar modal with slot creation, block, and delete controls synced to customers in realtime.
+
 ## Detailed Workflows
 
 ### Authentication Flow

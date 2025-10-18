@@ -5,9 +5,11 @@ import { StackNavigationProp } from '@react-navigation/stack'
 import { UserType } from '../types/database.types'
 import { RootStackParamList } from '../navigation/AppNavigator'
 import { useTheme } from '../contexts/ThemeContext'
+import { useLanguage } from '../contexts/LanguageContext'
 import { Background } from '../components/Background'
 import { glassCard } from '../components/themeStyles'
 import Ionicons from '@expo/vector-icons/Ionicons'
+import { t } from '../utils/i18n'
 
 type WelcomeScreenNavigationProp = StackNavigationProp<RootStackParamList, 'Welcome'>
 
@@ -16,6 +18,8 @@ const { width, height } = Dimensions.get('window')
 export function WelcomeScreen() {
   const navigation = useNavigation<WelcomeScreenNavigationProp>()
   const { theme, setTheme } = useTheme()
+  const { language: appLanguage } = useLanguage()
+  const { language } = useLanguage()
 
   const handleSelectUserType = (userType: UserType) => {
     navigation.navigate('Auth', { userType })
@@ -28,16 +32,16 @@ export function WelcomeScreen() {
           <View style={[styles.card, theme === 'glass' && glassCard]}>
             {/* Logo/Brand */}
             <View style={styles.logoContainer}>
-              <Text style={styles.logoText}>Worky</Text>
+              <Text style={styles.logoText}>{t('welcome.title', appLanguage)}</Text>
               <Text style={styles.subtitleText}>
-                Connect with skilled handymen instantly
+                {t('welcome.subtitle', appLanguage)}
               </Text>
             </View>
 
             {/* User Type Selection */}
             <View style={styles.selectionContainer}>
               <Text style={styles.selectionTitle}>
-                Choose your role
+                {t('welcome.choose_role', appLanguage)}
               </Text>
               
               <View style={styles.buttonContainer}>
@@ -48,8 +52,8 @@ export function WelcomeScreen() {
                   <View style={styles.buttonContent}>
                     <Ionicons name="construct-outline" size={20} color="#ffffff" style={styles.buttonIcon} />
                     <View style={styles.buttonTextContainer}>
-                      <Text style={styles.buttonTitle}>I'm a Handyman</Text>
-                      <Text style={styles.buttonSubtitle}>Offer your services</Text>
+                      <Text style={styles.buttonTitle}>{t('welcome.i_am_a_handyman', appLanguage)}</Text>
+                      <Text style={styles.buttonSubtitle}>{t('welcome.offer_your_services', appLanguage)}</Text>
                     </View>
                   </View>
                 </TouchableOpacity>
@@ -61,8 +65,8 @@ export function WelcomeScreen() {
                   <View style={styles.buttonContent}>
                     <Ionicons name="home-outline" size={20} color="#ffffff" style={styles.buttonIcon} />
                     <View style={styles.buttonTextContainer}>
-                      <Text style={styles.buttonTitle}>I need help</Text>
-                      <Text style={styles.buttonSubtitle}>Find skilled handymen</Text>
+                      <Text style={styles.buttonTitle}>{t('welcome.i_need_help', appLanguage)}</Text>
+                      <Text style={styles.buttonSubtitle}>{t('welcome.find_skilled_handymen', appLanguage)}</Text>
                     </View>
                   </View>
                 </TouchableOpacity>
@@ -71,20 +75,29 @@ export function WelcomeScreen() {
 
             {/* Footer */}
             <View style={styles.footerContainer}>
+              <TouchableOpacity
+                style={[styles.testButton, { alignSelf: 'center', marginBottom: 16 }]}
+                onPress={() => navigation.navigate('Settings')}
+              >
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                  <Ionicons name="settings-outline" size={14} color="rgba(255, 255, 255, 0.8)" />
+                  <Text style={styles.testButtonText}>{t('welcome.app_settings')}</Text>
+                </View>
+              </TouchableOpacity>
               <Text style={styles.footerText}>
-                By continuing, you agree to our Terms & Service
+                {t('welcome.terms', appLanguage)}
               </Text>
               <View style={styles.themeRow}>
-                <Text style={styles.footerText}>Theme:</Text>
+                <Text style={styles.footerText}>{t('welcome.theme')}:</Text>
                 <View style={styles.themeButtons}>
                   <TouchableOpacity onPress={() => setTheme('gradient')} style={[styles.themeButton, theme === 'gradient' && styles.themeButtonActive]}>
-                    <Text style={styles.themeButtonText}>Gradient</Text>
+                    <Text style={styles.themeButtonText}>{t('welcome.gradient')}</Text>
                   </TouchableOpacity>
                   <TouchableOpacity onPress={() => setTheme('mascot')} style={[styles.themeButton, theme === 'mascot' && styles.themeButtonActive]}>
-                    <Text style={styles.themeButtonText}>Mascot</Text>
+                    <Text style={styles.themeButtonText}>{t('welcome.mascot')}</Text>
                   </TouchableOpacity>
                   <TouchableOpacity onPress={() => setTheme('glass')} style={[styles.themeButton, theme === 'glass' && styles.themeButtonActive]}>
-                    <Text style={styles.themeButtonText}>Glass</Text>
+                    <Text style={styles.themeButtonText}>{t('welcome.glass')}</Text>
                   </TouchableOpacity>
                 </View>
               </View>
@@ -94,7 +107,36 @@ export function WelcomeScreen() {
               >
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
                   <Ionicons name="flask-outline" size={14} color="rgba(255, 255, 255, 0.8)" />
-                  <Text style={styles.testButtonText}>Test Auth</Text>
+                  <Text style={styles.testButtonText}>{t('welcome.test_auth')}</Text>
+                </View>
+              </TouchableOpacity>
+              
+              {/* Debug Button */}
+              <TouchableOpacity
+                style={[styles.testButton, { marginTop: 8 }]}
+                onPress={() => navigation.navigate('Debug')}
+              >
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                  <Ionicons name="bug-outline" size={14} color="rgba(255, 255, 255, 0.8)" />
+                  <Text style={styles.testButtonText}>{t('welcome.debug_connection')}</Text>
+                </View>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.testButton, { marginTop: 8 }]}
+                onPress={() => navigation.navigate('SupabaseTest')}
+              >
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                  <Ionicons name="cloud-outline" size={14} color="rgba(255, 255, 255, 0.8)" />
+                  <Text style={styles.testButtonText}>{t('welcome.test_supabase')}</Text>
+                </View>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.testButton, { marginTop: 8 }]}
+                onPress={() => navigation.navigate('MobileTest')}
+              >
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                  <Ionicons name="phone-portrait-outline" size={14} color="rgba(255, 255, 255, 0.8)" />
+                  <Text style={styles.testButtonText}>{t('welcome.mobile_test')}</Text>
                 </View>
               </TouchableOpacity>
             </View>

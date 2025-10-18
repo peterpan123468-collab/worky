@@ -224,8 +224,8 @@ src/
 
 ---
 
-**Last Updated**: Phase 7 flow completion backlog documented and prioritised
-**Next Milestone**: Phase 7 - Flow Completion & Backlog Burn Down kickoff
+**Last Updated**: Handyman availability calendar & slot manager shipped (Phase 7 P0)
+**Next Milestone**: Phase 7 - Extend realtime coverage + notification center rollout
 
 This context document ensures Claude Code maintains focus on the auction system implementation while respecting Swiss market requirements and architectural decisions.
 

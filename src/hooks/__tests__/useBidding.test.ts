@@ -1,19 +1,26 @@
 import { renderHook, act, waitFor } from '@testing-library/react-native'
-import { useBidding } from '../useBidding'
-import { auctionService } from '../../services/auction.service'
-import { createMockSupabaseClient } from '../../test/mocks/supabase.mock'
 
-// Mock dependencies
 jest.mock('../../services/auction.service')
-jest.mock('../../lib/supabase')
+
+jest.mock('../../lib/supabase', () => ({
+  supabase: {
+    from: jest.fn(),
+    channel: jest.fn(),
+    removeChannel: jest.fn()
+  }
+}))
+
+const { useBidding } = require('../useBidding') as typeof import('../useBidding')
+const { auctionService } = require('../../services/auction.service') as typeof import('../../services/auction.service')
+const { supabase: mockSupabase } = require('../../lib/supabase') as {
+  supabase: {
+    from: jest.Mock
+    channel: jest.Mock
+    removeChannel: jest.Mock
+  }
+}
 
 const mockAuctionService = auctionService as jest.Mocked<typeof auctionService>
-
-// Mock Supabase client
-const mockSupabase = createMockSupabaseClient()
-jest.doMock('../../lib/supabase', () => ({
-  supabase: mockSupabase
-}))
 
 describe('useBidding', () => {
   const mockAuctionId = 'auction-1'
@@ -41,7 +48,7 @@ describe('useBidding', () => {
 
   const mockChannel = {
     on: jest.fn().mockReturnThis(),
-    subscribe: jest.fn(),
+    subscribe: jest.fn().mockReturnThis(),
     unsubscribe: jest.fn()
   }
 
@@ -49,7 +56,7 @@ describe('useBidding', () => {
     jest.clearAllMocks()
 
     // Mock Supabase query chain
-    mockSupabase.__mocks.from.mockReturnValue({
+    const mockQueryChain = {
       select: jest.fn().mockReturnThis(),
       eq: jest.fn().mockReturnThis(),
       order: jest.fn().mockReturnThis(),
@@ -57,11 +64,11 @@ describe('useBidding', () => {
         data: mockBids,
         error: null
       })
-    })
+    }
 
-    // Mock Supabase channel
-    mockSupabase.channel = jest.fn().mockReturnValue(mockChannel)
-    mockSupabase.removeChannel = jest.fn()
+    mockSupabase.from.mockReturnValue(mockQueryChain)
+    mockSupabase.channel.mockReturnValue(mockChannel)
+    mockSupabase.removeChannel.mockReset()
 
     // Mock auction service
     mockAuctionService.placeBid.mockResolvedValue({
@@ -82,6 +89,17 @@ describe('useBidding', () => {
   })
 
   it('loads initial bids on mount', async () => {
+    const mockQueryChain = {
+      select: jest.fn().mockReturnThis(),
+      eq: jest.fn().mockReturnThis(),
+      order: jest.fn().mockReturnThis(),
+      limit: jest.fn().mockResolvedValue({
+        data: mockBids,
+        error: null
+      })
+    }
+    mockSupabase.from.mockReturnValue(mockQueryChain)
+
     const { result } = renderHook(() => useBidding(mockAuctionId))
 
     await waitFor(() => {
@@ -92,6 +110,8 @@ describe('useBidding', () => {
   })
 
   it('sets up realtime subscription', () => {
+    mockSupabase.channel.mockReturnValue(mockChannel)
+
     renderHook(() => useBidding(mockAuctionId))
 
     expect(mockSupabase.channel).toHaveBeenCalledWith(`auction:${mockAuctionId}`)
@@ -109,6 +129,9 @@ describe('useBidding', () => {
   })
 
   it('cleans up subscription on unmount', () => {
+    mockSupabase.removeChannel.mockReset()
+    mockSupabase.channel.mockReturnValue(mockChannel)
+
     const { unmount } = renderHook(() => useBidding(mockAuctionId))
 
     unmount()
@@ -117,6 +140,18 @@ describe('useBidding', () => {
   })
 
   it('updates highest bid from realtime events', async () => {
+    mockSupabase.channel.mockReturnValue(mockChannel)
+    const mockQueryChain = {
+      select: jest.fn().mockReturnThis(),
+      eq: jest.fn().mockReturnThis(),
+      order: jest.fn().mockReturnThis(),
+      limit: jest.fn().mockResolvedValue({
+        data: mockBids,
+        error: null
+      })
+    }
+    mockSupabase.from.mockReturnValue(mockQueryChain)
+
     const { result } = renderHook(() => useBidding(mockAuctionId))
 
     // Simulate realtime bid event
@@ -143,8 +178,10 @@ describe('useBidding', () => {
   })
 
   it('triggers onOutbid callback when user is outbid', async () => {
+    mockSupabase.channel.mockReturnValue(mockChannel)
+    
     // Initial setup with user winning
-    mockSupabase.__mocks.from.mockReturnValue({
+    const mockQueryChain = {
       select: jest.fn().mockReturnThis(),
       eq: jest.fn().mockReturnThis(),
       order: jest.fn().mockReturnThis(),
@@ -152,7 +189,8 @@ describe('useBidding', () => {
         data: [mockBids[0]], // User is winning
         error: null
       })
-    })
+    }
+    mockSupabase.from.mockReturnValue(mockQueryChain)
 
     const { result } = renderHook(() =>
       useBidding(mockAuctionId, { currentUserId: mockUserId, onOutbid: mockOnOutbid })
@@ -184,8 +222,10 @@ describe('useBidding', () => {
   })
 
   it('does not trigger onOutbid when user was not winning', async () => {
+    mockSupabase.channel.mockReturnValue(mockChannel)
+    
     // Initial setup with user not winning
-    mockSupabase.__mocks.from.mockReturnValue({
+    const mockQueryChain = {
       select: jest.fn().mockReturnThis(),
       eq: jest.fn().mockReturnThis(),
       order: jest.fn().mockReturnThis(),
@@ -193,7 +233,8 @@ describe('useBidding', () => {
         data: [mockBids[1]], // User is not winning
         error: null
       })
-    })
+    }
+    mockSupabase.from.mockReturnValue(mockQueryChain)
 
     const { result } = renderHook(() =>
       useBidding(mockAuctionId, { currentUserId: mockUserId, onOutbid: mockOnOutbid })
@@ -225,6 +266,18 @@ describe('useBidding', () => {
   })
 
   it('places bid successfully', async () => {
+    const mockQueryChain = {
+      select: jest.fn().mockReturnThis(),
+      eq: jest.fn().mockReturnThis(),
+      order: jest.fn().mockReturnThis(),
+      limit: jest.fn().mockResolvedValue({
+        data: mockBids,
+        error: null
+      })
+    }
+    mockSupabase.from.mockReturnValue(mockQueryChain)
+    mockSupabase.channel.mockReturnValue(mockChannel)
+
     const { result } = renderHook(() => useBidding(mockAuctionId))
 
     let bidResult: any
@@ -251,6 +304,18 @@ describe('useBidding', () => {
   })
 
   it('places bid with maxAutoBid', async () => {
+    const mockQueryChain = {
+      select: jest.fn().mockReturnThis(),
+      eq: jest.fn().mockReturnThis(),
+      order: jest.fn().mockReturnThis(),
+      limit: jest.fn().mockResolvedValue({
+        data: mockBids,
+        error: null
+      })
+    }
+    mockSupabase.from.mockReturnValue(mockQueryChain)
+    mockSupabase.channel.mockReturnValue(mockChannel)
+
     const { result } = renderHook(() => useBidding(mockAuctionId))
 
     await act(async () => {
@@ -266,6 +331,18 @@ describe('useBidding', () => {
   })
 
   it('handles bid failure from service', async () => {
+    const mockQueryChain = {
+      select: jest.fn().mockReturnThis(),
+      eq: jest.fn().mockReturnThis(),
+      order: jest.fn().mockReturnThis(),
+      limit: jest.fn().mockResolvedValue({
+        data: mockBids,
+        error: null
+      })
+    }
+    mockSupabase.from.mockReturnValue(mockQueryChain)
+    mockSupabase.channel.mockReturnValue(mockChannel)
+    
     mockAuctionService.placeBid.mockResolvedValue({
       success: false,
       error: 'Bid too low'
@@ -284,6 +361,18 @@ describe('useBidding', () => {
   })
 
   it('handles bid exception', async () => {
+    const mockQueryChain = {
+      select: jest.fn().mockReturnThis(),
+      eq: jest.fn().mockReturnThis(),
+      order: jest.fn().mockReturnThis(),
+      limit: jest.fn().mockResolvedValue({
+        data: mockBids,
+        error: null
+      })
+    }
+    mockSupabase.from.mockReturnValue(mockQueryChain)
+    mockSupabase.channel.mockReturnValue(mockChannel)
+    
     mockAuctionService.placeBid.mockRejectedValue(new Error('Network error'))
 
     const { result } = renderHook(() => useBidding(mockAuctionId))
@@ -302,6 +391,18 @@ describe('useBidding', () => {
   })
 
   it('handles non-Error exceptions', async () => {
+    const mockQueryChain = {
+      select: jest.fn().mockReturnThis(),
+      eq: jest.fn().mockReturnThis(),
+      order: jest.fn().mockReturnThis(),
+      limit: jest.fn().mockResolvedValue({
+        data: mockBids,
+        error: null
+      })
+    }
+    mockSupabase.from.mockReturnValue(mockQueryChain)
+    mockSupabase.channel.mockReturnValue(mockChannel)
+    
     mockAuctionService.placeBid.mockRejectedValue('String error')
 
     const { result } = renderHook(() => useBidding(mockAuctionId))
@@ -316,9 +417,21 @@ describe('useBidding', () => {
   })
 
   it('sets placing state during bid operation', async () => {
-    let resolveBid: (value: any) => void
+    const mockQueryChain = {
+      select: jest.fn().mockReturnThis(),
+      eq: jest.fn().mockReturnThis(),
+      order: jest.fn().mockReturnThis(),
+      limit: jest.fn().mockResolvedValue({
+        data: mockBids,
+        error: null
+      })
+    }
+    mockSupabase.from.mockReturnValue(mockQueryChain)
+    mockSupabase.channel.mockReturnValue(mockChannel)
+    
+    let resolveBid: (value: any) => void = jest.fn()
     mockAuctionService.placeBid.mockImplementation(
-      () => new Promise(resolve => { resolveBid = resolve })
+      () => new Promise(resolve => { resolveBid = resolve as any })
     )
 
     const { result } = renderHook(() => useBidding(mockAuctionId))
@@ -339,6 +452,8 @@ describe('useBidding', () => {
   })
 
   it('limits bids to 20 items', async () => {
+    mockSupabase.channel.mockReturnValue(mockChannel)
+    
     const manyBids = Array.from({ length: 25 }, (_, i) => ({
       id: `bid-${i}`,
       auction_id: 'auction-1',
@@ -348,7 +463,7 @@ describe('useBidding', () => {
       created_at: `2024-09-14T10:${String(i).padStart(2, '0')}:00Z`
     }))
 
-    mockSupabase.__mocks.from.mockReturnValue({
+    const mockQueryChain = {
       select: jest.fn().mockReturnThis(),
       eq: jest.fn().mockReturnThis(),
       order: jest.fn().mockReturnThis(),
@@ -356,7 +471,8 @@ describe('useBidding', () => {
         data: manyBids,
         error: null
       })
-    })
+    }
+    mockSupabase.from.mockReturnValue(mockQueryChain)
 
     const { result } = renderHook(() => useBidding(mockAuctionId))
 
@@ -387,12 +503,26 @@ describe('useBidding', () => {
   })
 
   it('does not setup subscription when auctionId is empty', () => {
+    mockSupabase.channel.mockReturnValue(mockChannel)
+
     renderHook(() => useBidding(''))
 
     expect(mockSupabase.channel).not.toHaveBeenCalled()
   })
 
   it('handles missing bid amount in realtime updates', async () => {
+    mockSupabase.channel.mockReturnValue(mockChannel)
+    const mockQueryChain = {
+      select: jest.fn().mockReturnThis(),
+      eq: jest.fn().mockReturnThis(),
+      order: jest.fn().mockReturnThis(),
+      limit: jest.fn().mockResolvedValue({
+        data: mockBids,
+        error: null
+      })
+    }
+    mockSupabase.from.mockReturnValue(mockQueryChain)
+
     const { result } = renderHook(() => useBidding(mockAuctionId))
 
     // Simulate realtime event with no bid_amount

@@ -8,7 +8,11 @@
 import { authService } from '../../services/auth.service'
 import { testSupabaseConnection } from '../../lib/supabase'
 
-describe('Auth Integration Tests', () => {
+const shouldSkipIntegration = process.env.RUN_INTEGRATION === 'true'
+
+const describeIntegration = shouldSkipIntegration ? describe : describe.skip
+
+describeIntegration('Auth Integration Tests', () => {
   // Test user credentials
   const TEST_USER_EMAIL = 'atemndobs@gmail.com'
   const TEST_USER_PASSWORD = 'Atem1234'

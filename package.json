@@ -16,6 +16,8 @@
     "test:e2e:build": "detox build",
     "test:e2e:ios": "detox test --configuration expo.ios.sim.debug",
     "test:e2e:android": "detox test --configuration expo.android.emu.debug",
+    "test:supabase": "node src/test/supabase-debug.ts",
+    "test:auth": "node src/test/auth-debug.js",
     "build:ios": "npx expo run:ios --configuration Debug",
     "build:android": "npx expo run:android --variant debug",
     "type-check": "tsc --noEmit"
@@ -23,6 +25,7 @@
   "dependencies": {
     "@expo/vector-icons": "^15.0.2",
     "@react-native-async-storage/async-storage": "2.2.0",
+    "@react-native-community/netinfo": "^11.4.1",
     "@react-native-masked-view/masked-view": "^0.3.2",
     "@react-navigation/bottom-tabs": "^7.4.7",
     "@react-navigation/native": "^7.1.17",
@@ -52,9 +55,12 @@
     "@types/jest": "^30.0.0",
     "@types/react": "~19.1.0",
     "detox": "^20.41.1",
+    "dotenv": "^17.2.3",
     "jest": "^29.7.0",
     "jest-expo": "^54.0.11",
+    "react-test-renderer": "^19.1.0",
     "tailwindcss": "^3.4.17",
+    "ts-node": "^10.9.2",
     "typescript": "~5.9.2"
   },
   "private": true

@@ -1,5 +1,5 @@
-# Revised Worky Implementation Plan (Phase 4 Eliminated)
 
+# Revised Worky Implementation Plan (Phase 4 Eliminated)
 **Project**: Worky Mobile App - Swiss Market Auction System
 **Timeline**: 13-17 days (3-4 days saved by eliminating Phase 4)
 **Status**: Phase 1 ✅ Complete, Phase 2 🚀 Next
@@ -308,11 +308,11 @@ docs/specs/
 
 #### Primary Deliverables
 - Customer journey completion
-  - Activate booking calls-to-action in CustomerDashboard (book button, quick actions, search flow)
-  - Implement customer booking management (view, cancel, reschedule) with Supabase data
+  - [x] Activate booking calls-to-action in CustomerDashboard (book button, quick actions, search flow)
+  - [x] Implement customer booking management (view, cancel, reschedule) with Supabase data
   - Ship customer-centric calendar view showing upcoming auctions and bookings
 - Handyman operational tooling
-  - Implement availability editor and calendar view linked to time slots
+  - [x] Implement availability editor and calendar view linked to time slots
   - Surface profile management (rates, skills, regions) with validation
   - Expand earnings and auction analytics to show CHF trends and conversion metrics
 - Shared platform features
@@ -327,6 +327,22 @@ docs/specs/
 - Updated E2E coverage for booking, availability, and notification scenarios
 
 #### Documentation & Testing
+
+#### Progress Log (2025-09-28)
+- Completed customer dashboard quick actions linking to `CreateBooking` and `Bookings` screens for direct booking flows
+- Implemented Supabase-backed booking service, creation filters, and confirmation modal for calendar slots
+- Shipped customer booking management sheet (cancel/reschedule) and dedicated bookings overview screen
+- Added unit and component tests for booking services/hooks and lightweight booking modal render checks
+- Recorded booking happy path E2E coverage and refreshed supporting documentation (user journeys, CLAUDE metadata)
+
+#### Progress Log (2025-09-29)
+- Delivered glass-themed availability calendar with live Supabase updates and slot management controls
+- Added handyman availability modal entry point and integrated create/block/delete slot actions
+- Implemented availability services/hooks with realtime subscriptions and Jest coverage
+- Extended booking and availability realtime channels with fallback polling and optimistic slot updates
+- Captured Detox happy path for opening the availability manager from the handyman dashboard
+- Updated planning docs and CLAUDE metadata for Phase 7 availability milestone
+
 - Refresh architecture diagrams in docs/specs/architecture-overview.md to reflect booking, availability, and notification layers
 - Update docs/user-types-and-journeys.md with revised booking & availability flows
 - Extend API reference with booking, profile, and notification endpoints
@@ -381,4 +397,7 @@ docs/specs/
 ---
 
 **Next Review**: Phase 7 kickoff readiness review (target: TBD once resources allocated)
-**Success Metric**: Customer and handyman flows operational end-to-end with bookings, availability, and notifications aligned to Swiss requirements
+**Success Metric**: Customer and handyman flows operational end-to-end with bookings, availability, and notifications aligned to Swiss requirements\n#### Progress Log (2025-09-29) - Test Verification\n- Confirmed full Jest suite passes after auction/auth service refinements and mock updates\n- Documented native alert wrapper adoption across auction creation flow for offline resilience\n- Ready for next milestone work; resume here if session interrupted
+\n#### Progress Log (2025-09-29) - Regression Sweep\n- Re-ran full Jest suite; all 16 suites green (1 intentionally skipped) after auction/auth updates\n- Verified auction creation alerts and Supabase mocks performing as expected\n- No further issues reproduced; ready to continue from this checkpoint
+\n#### Progress Log (2025-09-29) - Dashboard Hook Cleanup\n- Wrapped async state updates in useHandymanDashboard tests with ct to silence warnings\n- Verified hook suite and full Jest run both pass without act-related noise\n- Safe restart point established after dashboard regression check
+\n#### Progress Log (2025-09-29) - Supabase Connectivity Hardening\n- Added Node-only .env autoload in src/lib/supabase.ts to prevent missing credential errors during scripts/tests\n- Confirmed direct Supabase pings succeed with parsed env values and Jest auth suite passes\n- Regression log: use this checkpoint before further connectivity work

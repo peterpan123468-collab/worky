@@ -3,6 +3,11 @@ export const CHF_INCREMENT = 5
 
 export function formatCHF(value: number): string {
   if (Number.isNaN(value)) return 'CHF 0.00'
+  if (!Number.isFinite(value)) {
+    if (value === Infinity) return 'CHF Infinity.00'
+    if (value === -Infinity) return 'CHF -Infinity.00'
+    return 'CHF 0.00'
+  }
   return `CHF ${value.toFixed(2)}`
 }
 

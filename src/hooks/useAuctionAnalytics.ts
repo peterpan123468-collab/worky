@@ -45,16 +45,16 @@ export function useAuctionAnalytics(handymanId?: string) {
       
       if (activeError) throw activeError
 
-      // Fetch completed auctions
+      // Fetch completed auctions (both 'ended' and 'cancelled')
       const { count: completedAuctions, error: completedError } = await supabase
         .from('auctions')
         .select('*', { count: 'exact', head: true })
         .eq('handyman_id', handymanId)
-        .eq('status', 'ended')
+        .in('status', ['ended', 'cancelled'])
       
       if (completedError) throw completedError
 
-      // Fetch revenue from completed auctions
+      // Fetch revenue from completed auctions (only 'ended' ones have revenue)
       const { data: revenueData, error: revenueError } = await supabase
         .from('auctions')
         .select('current_highest_bid')
@@ -132,7 +132,54 @@ export function useAuctionAnalytics(handymanId?: string) {
 
   useEffect(() => {
     fetchStats()
-  }, [fetchStats])
+    
+    // Set up real-time subscription for auction changes
+    if (handymanId) {
+      const channel = supabase
+        .channel('auction-analytics-changes')
+        .on(
+          'postgres_changes',
+          {
+            event: 'INSERT',
+            schema: 'public',
+            table: 'auctions',
+            filter: `handyman_id=eq.${handymanId}`
+          },
+          () => {
+            fetchStats()
+          }
+        )
+        .on(
+          'postgres_changes',
+          {
+            event: 'UPDATE',
+            schema: 'public',
+            table: 'auctions',
+            filter: `handyman_id=eq.${handymanId}`
+          },
+          () => {
+            fetchStats()
+          }
+        )
+        .on(
+          'postgres_changes',
+          {
+            event: 'DELETE',
+            schema: 'public',
+            table: 'auctions',
+            filter: `handyman_id=eq.${handymanId}`
+          },
+          () => {
+            fetchStats()
+          }
+        )
+        .subscribe()
+
+      return () => {
+        supabase.removeChannel(channel)
+      }
+    }
+  }, [fetchStats, handymanId])
 
   return { stats, loading, error, refresh: fetchStats }
 }

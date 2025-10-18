@@ -8,9 +8,10 @@ import {
 } from '../../test/mocks/supabase.mock'
 
 // Mock the supabase client
-jest.mock('../../lib/supabase', () => ({
-  supabase: createMockSupabaseClient()
-}))
+jest.mock('../../lib/supabase', () => {
+  const { createMockSupabaseClient } = require('../../test/mocks/supabase.mock')
+  return { supabase: createMockSupabaseClient() }
+})
 
 describe('AuthService', () => {
   let authService: AuthService
@@ -20,6 +21,7 @@ describe('AuthService', () => {
     authService = new AuthService()
     mockSupabase = require('../../lib/supabase').supabase
     jest.clearAllMocks()
+    mockSupabase.__mocks.resetQueues()
   })
 
   describe('signUp', () => {
@@ -45,7 +47,7 @@ describe('AuthService', () => {
       mockSupabase.auth.signUp.mockResolvedValue(
         createMockAuthResponse({ id: mockUser.id, email: mockUser.email })
       )
-      mockSupabase.__mocks.single.mockResolvedValue({ data: mockUser, error: null })
+      mockSupabase.__mocks.enqueueSingle({ data: mockUser, error: null })
 
       const result = await authService.signUp(validSignUpData)
 
@@ -70,9 +72,8 @@ describe('AuthService', () => {
       mockSupabase.auth.signUp.mockResolvedValue(
         createMockAuthResponse({ id: mockUser.id, email: mockUser.email })
       )
-      mockSupabase.__mocks.single
-        .mockResolvedValueOnce({ data: mockUser, error: null })
-        .mockResolvedValueOnce({ data: mockProfile, error: null })
+      mockSupabase.__mocks.enqueueSingle({ data: mockUser, error: null })
+      mockSupabase.__mocks.enqueueSingle({ data: mockProfile, error: null })
 
       const result = await authService.signUp(validHandymanData)
 
@@ -146,7 +147,7 @@ describe('AuthService', () => {
       mockSupabase.auth.signInWithPassword.mockResolvedValue(
         createMockAuthResponse({ id: mockUser.id, email: mockUser.email })
       )
-      mockSupabase.__mocks.single.mockResolvedValue({ data: mockUser, error: null })
+      mockSupabase.__mocks.enqueueSingle({ data: mockUser, error: null })
 
       const result = await authService.signIn(validCredentials.email, validCredentials.password)
 
@@ -207,9 +208,8 @@ describe('AuthService', () => {
       mockSupabase.auth.getUser.mockResolvedValue(
         createMockAuthResponse({ id: mockUser.id })
       )
-      mockSupabase.__mocks.single
-        .mockResolvedValueOnce({ data: mockUser, error: null })
-        .mockResolvedValueOnce({ data: mockProfile, error: null })
+      mockSupabase.__mocks.enqueueSingle({ data: mockUser, error: null })
+      mockSupabase.__mocks.enqueueSingle({ data: mockProfile, error: null })
 
       const result = await authService.getCurrentUser()
 
@@ -225,7 +225,7 @@ describe('AuthService', () => {
       mockSupabase.auth.getUser.mockResolvedValue(
         createMockAuthResponse({ id: mockUser.id })
       )
-      mockSupabase.__mocks.single.mockResolvedValue({ data: mockUser, error: null })
+      mockSupabase.__mocks.enqueueSingle({ data: mockUser, error: null })
 
       const result = await authService.getCurrentUser()
 
@@ -245,40 +245,39 @@ describe('AuthService', () => {
   })
 
   describe('validation', () => {
-    it('should validate email format', () => {
+    it('should validate email format', async () => {
       const invalidData = {
         email: 'invalid-email',
         password: 'password123',
         userType: 'customer' as const
       }
 
-      expect(async () => {
-        await authService.signUp(invalidData)
-      }).rejects.toThrow(ValidationError)
+      const result = await authService.signUp(invalidData)
+      expect(result.error).toBeTruthy()
     })
 
-    it('should validate password length', () => {
+    it('should validate password length', async () => {
       const invalidData = {
         email: 'test@example.com',
         password: '123',
         userType: 'customer' as const
       }
 
-      expect(async () => {
-        await authService.signUp(invalidData)
-      }).rejects.toThrow('Password must be at least 6 characters')
+      const result = await authService.signUp(invalidData)
+      expect(result.error).toContain('Password must be at least 6 characters')
     })
 
-    it('should validate user type', () => {
+    it('should validate user type', async () => {
       const invalidData = {
         email: 'test@example.com',
         password: 'password123',
         userType: 'invalid' as any
       }
 
-      expect(async () => {
-        await authService.signUp(invalidData)
-      }).rejects.toThrow('Valid user type is required')
+      const result = await authService.signUp(invalidData)
+
+      expect(result.error).toBe('Valid user type is required')
+      expect(result.user).toBeNull()
     })
   })
 
@@ -300,7 +299,7 @@ describe('AuthService', () => {
       const updates = { hourly_rate: 75 }
       const updateError = createMockSupabaseError('Update failed')
 
-      mockSupabase.__mocks.update.mockResolvedValue({ error: updateError })
+      mockSupabase.__mocks.enqueueQueryResult({ error: updateError })
 
       const result = await authService.updateHandymanProfile(userId, updates)
 

@@ -8,6 +8,8 @@ interface BackgroundProps extends ViewProps {
 
 export function Background({ children, style, ...rest }: BackgroundProps) {
   const { theme } = useTheme()
+  
+  console.log('[Background] Render - theme:', theme)
 
   const backgroundSource = theme === 'gradient'
     ? require('../../assets/gradient-background.jpeg')
@@ -37,4 +39,3 @@ const styles = StyleSheet.create({
     backgroundColor: '#000000',
   },
 })
-

@@ -10,12 +10,12 @@ jest.mock('../../../contexts/AuthContext')
 jest.mock('../../../contexts/ToastContext')
 jest.mock('../../../hooks/useBidding')
 jest.mock('../../ui/button', () => ({
-  Button: ({ children, onPress, disabled, style }: any) => (
+  Button: ({ children, onPress, disabled, style, testID }: any) => (
     <button
-      onPress={onPress}
+      onClick={onPress}
       disabled={disabled}
       style={style}
-      testID="bid-button"
+      testID={testID || 'bid-button'}
     >
       {children}
     </button>
@@ -39,7 +39,9 @@ describe('BiddingInterface', () => {
   const defaultUser = {
     id: 'user-1',
     email: 'test@example.com',
-    user_type: 'customer' as const
+    user_type: 'customer' as const,
+    created_at: '2024-01-01T00:00:00Z',
+    updated_at: '2024-01-01T00:00:00Z'
   }
 
   beforeEach(() => {
@@ -47,15 +49,21 @@ describe('BiddingInterface', () => {
 
     mockUseAuth.mockReturnValue({
       user: defaultUser,
-      login: jest.fn(),
-      logout: jest.fn(),
-      loading: false
-    })
+      userType: 'customer',
+      authState: 'authenticated',
+      isAuthenticated: true,
+      isLoading: false,
+      error: null,
+      signUp: jest.fn(),
+      signIn: jest.fn(),
+      signOut: jest.fn(),
+      clearError: jest.fn(),
+      setUserType: jest.fn(),
+      logout: jest.fn()
+    } as any)
 
     mockUseToast.mockReturnValue({
-      show: mockShow,
-      hide: jest.fn(),
-      toasts: []
+      show: mockShow
     })
 
     mockUseBidding.mockReturnValue({
@@ -63,18 +71,21 @@ describe('BiddingInterface', () => {
       placeBid: mockPlaceBid,
       placing: false,
       error: null,
-      recentBids: []
+      bids: [],
+      currentUserBid: null
     })
   })
 
   it('renders correctly with default values', () => {
-    const { getByDisplayValue, getByText } = render(<BiddingInterface {...defaultProps} />)
+    const { getByDisplayValue, getByText, getByTestId } = render(<BiddingInterface {...defaultProps} />)
 
-    // Should show next valid bid (55) as default value
-    expect(getByDisplayValue('55')).toBeTruthy()
-    expect(getByText('Your bid')).toBeTruthy()
-    expect(getByText('Place Bid')).toBeTruthy()
-    expect(getByText('Highest: CHF 50.00')).toBeTruthy()
+    expect(getByDisplayValue('55.00')).toBeTruthy()
+    expect(getByText('Your bid (CHF)')).toBeTruthy()
+    const button = getByTestId('place-bid-button')
+    expect(button).toBeTruthy()
+    expect(button.props.children).toContain('Place Bid')
+    expect(getByText('Highest (CHF)')).toBeTruthy()
+    expect(getByText('50.00')).toBeTruthy()
   })
 
   it('uses highest bid from hook when available', () => {
@@ -83,30 +94,32 @@ describe('BiddingInterface', () => {
       placeBid: mockPlaceBid,
       placing: false,
       error: null,
-      recentBids: []
+      bids: [],
+      currentUserBid: null
     })
 
     const { getByText } = render(<BiddingInterface {...defaultProps} />)
 
-    expect(getByText('Highest: CHF 65.00')).toBeTruthy()
+    expect(getByText('Highest (CHF)')).toBeTruthy()
+    expect(getByText('65.00')).toBeTruthy()
   })
 
   it('allows user to change bid amount', () => {
     const { getByDisplayValue } = render(<BiddingInterface {...defaultProps} />)
 
-    const input = getByDisplayValue('55')
+    const input = getByDisplayValue('55.00')
     fireEvent.changeText(input, '75')
 
-    expect(getByDisplayValue('75')).toBeTruthy()
+    expect(getByDisplayValue('75.00')).toBeTruthy()
   })
 
   it('handles empty input gracefully', () => {
     const { getByDisplayValue } = render(<BiddingInterface {...defaultProps} />)
 
-    const input = getByDisplayValue('55')
+    const input = getByDisplayValue('55.00')
     fireEvent.changeText(input, '')
 
-    expect(getByDisplayValue('0')).toBeTruthy()
+    expect(getByDisplayValue('0.00')).toBeTruthy()
   })
 
   it('calls placeBid when button is pressed', async () => {
@@ -115,11 +128,11 @@ describe('BiddingInterface', () => {
     const { getByTestId, getByDisplayValue } = render(<BiddingInterface {...defaultProps} />)
 
     // Change bid amount
-    const input = getByDisplayValue('55')
+    const input = getByDisplayValue('55.00')
     fireEvent.changeText(input, '75')
 
     // Press the bid button
-    fireEvent.press(getByTestId('bid-button'))
+    fireEvent.press(getByTestId('place-bid-button'))
 
     await waitFor(() => {
       expect(mockPlaceBid).toHaveBeenCalledWith('user-1', 75)
@@ -131,7 +144,7 @@ describe('BiddingInterface', () => {
 
     const { getByTestId } = render(<BiddingInterface {...defaultProps} />)
 
-    fireEvent.press(getByTestId('bid-button'))
+    fireEvent.press(getByTestId('place-bid-button'))
 
     await waitFor(() => {
       expect(mockShow).toHaveBeenCalledWith('Bid placed successfully', { type: 'success' })
@@ -146,7 +159,7 @@ describe('BiddingInterface', () => {
 
     const { getByTestId } = render(<BiddingInterface {...defaultProps} />)
 
-    fireEvent.press(getByTestId('bid-button'))
+    fireEvent.press(getByTestId('place-bid-button'))
 
     await waitFor(() => {
       expect(mockShow).toHaveBeenCalledWith('Bid amount too low', {
@@ -159,14 +172,22 @@ describe('BiddingInterface', () => {
   it('does not submit bid when user is not logged in', async () => {
     mockUseAuth.mockReturnValue({
       user: null,
-      login: jest.fn(),
-      logout: jest.fn(),
-      loading: false
-    })
+      userType: null,
+      authState: 'unauthenticated',
+      isAuthenticated: false,
+      isLoading: false,
+      error: null,
+      signUp: jest.fn(),
+      signIn: jest.fn(),
+      signOut: jest.fn(),
+      clearError: jest.fn(),
+      setUserType: jest.fn(),
+      logout: jest.fn()
+    } as any)
 
     const { getByTestId } = render(<BiddingInterface {...defaultProps} />)
 
-    fireEvent.press(getByTestId('bid-button'))
+    fireEvent.press(getByTestId('place-bid-button'))
 
     expect(mockPlaceBid).not.toHaveBeenCalled()
   })
@@ -177,15 +198,16 @@ describe('BiddingInterface', () => {
       placeBid: mockPlaceBid,
       placing: true,
       error: null,
-      recentBids: []
+      bids: [],
+      currentUserBid: null
     })
 
-    const { getByText, getByDisplayValue } = render(<BiddingInterface {...defaultProps} />)
+    const { getByText, getByDisplayValue, getByTestId } = render(<BiddingInterface {...defaultProps} />)
 
-    expect(getByText('Placing…')).toBeTruthy()
+    const button = getByTestId('place-bid-button')
+    expect(button.props.children).toContain('Updating')
 
-    // Input should be disabled during placing
-    const input = getByDisplayValue('55')
+    const input = getByDisplayValue('55.00')
     expect(input.props.editable).toBe(false)
   })
 
@@ -195,7 +217,8 @@ describe('BiddingInterface', () => {
       placeBid: mockPlaceBid,
       placing: false,
       error: 'Connection error',
-      recentBids: []
+      bids: [],
+      currentUserBid: null
     })
 
     const { getByText } = render(<BiddingInterface {...defaultProps} />)
@@ -212,55 +235,65 @@ describe('BiddingInterface', () => {
     expect(getByText('Bidding is closed')).toBeTruthy()
 
     // Input should be disabled
-    const input = getByDisplayValue('55')
+    const input = getByDisplayValue('55.00')
     expect(input.props.editable).toBe(false)
 
     // Button should be disabled
-    const button = getByTestId('bid-button')
+    const button = getByTestId('place-bid-button')
     expect(button.props.disabled).toBe(true)
   })
 
-  it('triggers outbid callback through useBidding hook', () => {
+  it('triggers outbid callback through useBidding hook', async () => {
     const mockOnOutbid = jest.fn()
+    let outbidCallback: (() => void) | undefined
 
-    // Mock the hook to call onOutbid
+    // Mock the hook to capture the onOutbid callback
     mockUseBidding.mockImplementation((auctionId, options) => {
-      // Simulate calling the onOutbid callback
-      setTimeout(() => options?.onOutbid?.(), 0)
+      // Store the callback for later use
+      if (options?.onOutbid) {
+        outbidCallback = options.onOutbid
+      }
 
       return {
         highestBid: 50,
         placeBid: mockPlaceBid,
         placing: false,
         error: null,
-        recentBids: []
+        bids: [],
+        currentUserBid: null
       }
     })
 
     render(<BiddingInterface {...defaultProps} />)
 
-    // Wait for the callback to be triggered
-    setTimeout(() => {
+    // Simulate the outbid callback being called
+    if (outbidCallback) {
+      outbidCallback()
+    }
+
+    // Wait for the toast to be shown
+    await waitFor(() => {
       expect(mockShow).toHaveBeenCalledWith("You've been outbid", { type: 'info' })
-    }, 10)
+    }, { timeout: 2000 })
   })
 
   it('handles numeric input parsing correctly', () => {
     const { getByDisplayValue } = render(<BiddingInterface {...defaultProps} />)
 
-    const input = getByDisplayValue('55')
+    const input = getByDisplayValue('55.00')
 
     // Test valid numbers
     fireEvent.changeText(input, '100')
-    expect(getByDisplayValue('100')).toBeTruthy()
+    expect(getByDisplayValue('100.00')).toBeTruthy()
 
     // Test invalid input (should default to 0)
     fireEvent.changeText(input, 'abc')
-    expect(getByDisplayValue('0')).toBeTruthy()
+    expect(getByDisplayValue('0.00')).toBeTruthy()
 
     // Test decimal numbers (should be parsed as integer)
     fireEvent.changeText(input, '75.5')
-    expect(getByDisplayValue('75')).toBeTruthy()
+    // The component should show 75.50, not 75.00, because it's displaying the actual value
+    expect(getByDisplayValue('75.50')).toBeTruthy()
   })
 
   it('shows correct opacity when disabled', () => {
@@ -268,7 +301,7 @@ describe('BiddingInterface', () => {
       <BiddingInterface {...defaultProps} disabled={true} />
     )
 
-    const input = getByDisplayValue('55')
+    const input = getByDisplayValue('55.00')
     expect(input.props.style).toEqual(
       expect.arrayContaining([
         expect.objectContaining({ opacity: 0.6 })

@@ -2,7 +2,7 @@ import { supabase } from '../lib/supabase'
 
 class AuctionLifecycleService {
   private intervalId: ReturnType<typeof setInterval> | null = null
-  private readonly CHECK_INTERVAL = 60 * 1000 // 1 minute
+  private readonly CHECK_INTERVAL = 30 * 1000 // 30 seconds (increased frequency for more responsive closing)
 
   /**
    * Start the auction lifecycle management service
@@ -23,7 +23,14 @@ class AuctionLifecycleService {
       }
     }, this.CHECK_INTERVAL)
 
-    console.log('Auction lifecycle service started')
+    console.log('Auction lifecycle service started with 30s interval')
+    
+    // Also process immediately on startup to catch any missed auctions
+    setTimeout(() => {
+      this.processExpiredAuctions().catch(error => {
+        console.error('Error processing expired auctions on startup:', error)
+      })
+    }, 5000) // Wait 5 seconds after startup to process
   }
 
   /**
@@ -51,7 +58,11 @@ class AuctionLifecycleService {
         return
       }
       
-      console.log('Expired auctions processed successfully')
+      if (data && data.processed_count > 0) {
+        console.log(`Expired auctions processed successfully: ${data.processed_count} auctions closed`)
+      } else {
+        console.log('No expired auctions to process')
+      }
     } catch (error) {
       console.error('Error processing expired auctions:', error)
     }

@@ -55,12 +55,26 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
   const initializeAuth = async () => {
     try {
+      console.log('[Auth] Initializing auth on platform:', typeof navigator !== 'undefined' ? navigator.userAgent : 'React Native')
       setAuthState('loading')
+      
+      // Add platform-specific logging
+      if (typeof navigator === 'undefined') {
+        console.log('[Auth] Running on mobile/native platform')
+      } else {
+        console.log('[Auth] Running on web platform')
+      }
+      
+      console.log('[Auth] Calling authService.getCurrentUser()...')
       const currentUser = await authService.getCurrentUser()
-      setUser(currentUser)
-      setAuthState(currentUser ? 'authenticated' : 'unauthenticated')
+      
+      console.log('[Auth] getCurrentUser result:', currentUser)
+      setUser(currentUser as any)
+      const newState = currentUser ? 'authenticated' : 'unauthenticated'
+      setAuthState(newState)
+      console.log('[Auth] Auth state set to:', newState)
     } catch (error) {
-      console.error('Auth initialization error:', error)
+      console.error('[Auth] Auth initialization error:', error)
       setAuthState('unauthenticated')
     }
   }

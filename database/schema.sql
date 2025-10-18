@@ -34,6 +34,20 @@ CREATE TABLE IF NOT EXISTS handyman_profiles (
   min_bid_increment DECIMAL(10,2) DEFAULT 5.00,
   calendar_integration_enabled BOOLEAN DEFAULT false,
   auto_confirm_calendar_bookings BOOLEAN DEFAULT false,
+  -- Language preference
+  language VARCHAR(5) DEFAULT 'en',
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Customer profiles table (New)
+CREATE TABLE IF NOT EXISTS customer_profiles (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID REFERENCES users(id) ON DELETE CASCADE,
+  phone VARCHAR,
+  address TEXT,
+  -- Language preference
+  language VARCHAR(5) DEFAULT 'en',
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
@@ -399,95 +413,109 @@ $$ LANGUAGE plpgsql SECURITY DEFINER;
 
 -- Function to close expired auctions
 CREATE OR REPLACE FUNCTION close_expired_auctions()
-RETURNS void AS $$
+RETURNS TABLE(processed_count INTEGER) AS $$
 DECLARE
   expired_auction auctions%ROWTYPE;
+  count INTEGER := 0;
 BEGIN
-  -- Process each expired auction
+  -- Process each expired auction that is still active
   FOR expired_auction IN
     SELECT * FROM auctions
     WHERE status = 'active' AND ends_at <= NOW()
   LOOP
-    -- Update auction status
-    UPDATE auctions 
-    SET 
-      status = 'ended', 
-      winner_id = expired_auction.current_highest_bidder_id,
-      updated_at = NOW()
-    WHERE id = expired_auction.id;
+    -- Update auction status to ended only if it's still active
+    -- Use a more defensive approach to ensure we don't violate constraints
+    BEGIN
+      UPDATE auctions 
+      SET 
+        status = 'ended', 
+        winner_id = expired_auction.current_highest_bidder_id,
+        updated_at = NOW()
+      WHERE id = expired_auction.id AND status = 'active';
 
-    -- Create booking if there's a winner and reserve price is met
-    IF expired_auction.current_highest_bidder_id IS NOT NULL 
-       AND (expired_auction.reserve_price IS NULL 
-            OR expired_auction.current_highest_bid >= expired_auction.reserve_price) THEN
-      
-      -- Create booking for auction winner
-      INSERT INTO bookings (
-        customer_id,
-        handyman_id,
-        status,
-        total_price,
-        booking_type,
-        auction_id,
-        winning_bid_amount,
-        customer_address,
-        work_description
-      ) VALUES (
-        expired_auction.current_highest_bidder_id,
-        expired_auction.handyman_id,
-        'confirmed', -- Auction wins auto-confirm
-        expired_auction.current_highest_bid,
-        'auction',
-        expired_auction.id,
-        expired_auction.current_highest_bid,
-        'Address to be provided', -- Customer will update this
-        expired_auction.description
-      );
+      -- Check if the update actually happened (auction was still active)
+      IF FOUND THEN
+        -- Create booking if there's a winner and reserve price is met
+        IF expired_auction.current_highest_bidder_id IS NOT NULL 
+           AND (expired_auction.reserve_price IS NULL 
+                OR expired_auction.current_highest_bid >= expired_auction.reserve_price) THEN
+          
+          -- Create booking for auction winner
+          INSERT INTO bookings (
+            customer_id,
+            handyman_id,
+            status,
+            total_price,
+            booking_type,
+            auction_id,
+            winning_bid_amount,
+            customer_address,
+            work_description
+          ) VALUES (
+            expired_auction.current_highest_bidder_id,
+            expired_auction.handyman_id,
+            'confirmed', -- Auction wins auto-confirm
+            expired_auction.current_highest_bid,
+            'auction',
+            expired_auction.id,
+            expired_auction.current_highest_bid,
+            'Address to be provided', -- Customer will update this
+            expired_auction.description
+          );
 
-      -- Notify winner
-      INSERT INTO notifications (user_id, type, title, message, data)
-      VALUES (
-        expired_auction.current_highest_bidder_id,
-        'auction_won',
-        'Congratulations! You won the auction',
-        'You won the auction for "' || expired_auction.title || '"',
-        json_build_object(
-          'auction_id', expired_auction.id,
-          'winning_bid', expired_auction.current_highest_bid
-        )
-      );
+          -- Notify winner
+          INSERT INTO notifications (user_id, type, title, message, data)
+          VALUES (
+            expired_auction.current_highest_bidder_id,
+            'auction_won',
+            'Congratulations! You won the auction',
+            'You won the auction for "' || expired_auction.title || '"',
+            json_build_object(
+              'auction_id', expired_auction.id,
+              'winning_bid', expired_auction.current_highest_bid
+            )
+          );
 
-      -- Notify handyman
-      INSERT INTO notifications (user_id, type, title, message, data)
-      VALUES (
-        expired_auction.handyman_id,
-        'auction_ended',
-        'Your auction has ended',
-        'Your auction "' || expired_auction.title || '" was won for CHF ' || expired_auction.current_highest_bid,
-        json_build_object(
-          'auction_id', expired_auction.id,
-          'winning_bid', expired_auction.current_highest_bid,
-          'winner_id', expired_auction.current_highest_bidder_id
-        )
-      );
-    END IF;
+          -- Notify handyman
+          INSERT INTO notifications (user_id, type, title, message, data)
+          VALUES (
+            expired_auction.handyman_id,
+            'auction_ended',
+            'Your auction has ended',
+            'Your auction "' || expired_auction.title || '" was won for CHF ' || expired_auction.current_highest_bid,
+            json_build_object(
+              'auction_id', expired_auction.id,
+              'winning_bid', expired_auction.current_highest_bid,
+              'winner_id', expired_auction.current_highest_bidder_id
+            )
+          );
+        END IF;
 
-    -- Notify other bidders that auction ended
-    INSERT INTO notifications (user_id, type, title, message, data)
-    SELECT 
-      DISTINCT ab.bidder_id,
-      'auction_lost',
-      'Auction ended',
-      'The auction for "' || expired_auction.title || '" has ended',
-      json_build_object(
-        'auction_id', expired_auction.id,
-        'winning_bid', expired_auction.current_highest_bid
-      )
-    FROM auction_bids ab
-    WHERE ab.auction_id = expired_auction.id
-    AND ab.bidder_id != COALESCE(expired_auction.current_highest_bidder_id, '00000000-0000-0000-0000-000000000000'::UUID);
-
+        -- Notify other bidders that auction ended
+        INSERT INTO notifications (user_id, type, title, message, data)
+        SELECT 
+          DISTINCT ab.bidder_id,
+          'auction_lost',
+          'Auction ended',
+          'The auction for "' || expired_auction.title || '" has ended',
+          json_build_object(
+            'auction_id', expired_auction.id,
+            'winning_bid', expired_auction.current_highest_bid
+          )
+        FROM auction_bids ab
+        WHERE ab.auction_id = expired_auction.id
+        AND ab.bidder_id != COALESCE(expired_auction.current_highest_bidder_id, '00000000-0000-0000-0000-000000000000'::UUID);
+        
+        count := count + 1;
+      END IF;
+    EXCEPTION
+      WHEN OTHERS THEN
+        -- Log the error but continue processing other auctions
+        RAISE NOTICE 'Error processing auction %: %', expired_auction.id, SQLERRM;
+    END;
   END LOOP;
+  
+  RETURN QUERY SELECT count;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 

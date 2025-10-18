@@ -1,4 +1,4 @@
-import { renderHook, waitFor } from '@testing-library/react-native'
+import { renderHook, waitFor, act } from '@testing-library/react-native'
 import { useHandymanDashboard } from '../useHandymanDashboard'
 import * as dashboardService from '../../services/dashboard.service'
 import { AuctionBid } from '../../types/database.types'
@@ -69,7 +69,7 @@ describe('useHandymanDashboard', () => {
     expect(result.current.error).toBeNull()
   })
 
-  it('sets loading state during fetch', () => {
+  it('sets loading state during fetch', async () => {
     let resolveStats: (value: any) => void
     let resolveBids: (value: any) => void
 
@@ -84,9 +84,14 @@ describe('useHandymanDashboard', () => {
 
     expect(result.current.loading).toBe(true)
 
-    // Resolve the promises
-    resolveStats!(mockStats)
-    resolveBids!(mockRecentBids)
+    await act(async () => {
+      resolveStats!(mockStats)
+      resolveBids!(mockRecentBids)
+    })
+
+    await waitFor(() => {
+      expect(result.current.loading).toBe(false)
+    })
   })
 
   it('handles errors during fetch', async () => {
@@ -132,7 +137,9 @@ describe('useHandymanDashboard', () => {
     mockDashboardService.getRecentBidsForHandyman.mockResolvedValue(mockRecentBids)
 
     // Trigger refresh
-    result.current.refresh()
+    await act(async () => {
+      await result.current.refresh()
+    })
 
     await waitFor(() => {
       expect(result.current.error).toBeNull()
@@ -179,7 +186,9 @@ describe('useHandymanDashboard', () => {
     })
 
     // Manual refresh
-    result.current.refresh()
+    await act(async () => {
+      await result.current.refresh()
+    })
 
     await waitFor(() => {
       expect(result.current.stats).toEqual({ activeBookings: 5, monthRevenue: 600 })
